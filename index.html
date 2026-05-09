@@ -2,58 +2,99 @@
 <html lang="nl">
 <head>
     <meta charset="UTF-8">
-    <title>Life Sim Pro - LIVE</title>
+    <title>Life Sim - Giga Map & Huizen</title>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
-        :root { --p: #3498db; --s: #2ecc71; --g: #27ae60; }
-        body, html { margin: 0; padding: 0; width: 100%; height: 100%; overflow: hidden; background: #1a1a1a; font-family: sans-serif; }
+        :root { --p: #3498db; --s: #2ecc71; --g: #78e08f; --house: #f5f6fa; --wall: #dcdde1; }
+        body, html { margin: 0; padding: 0; width: 100%; height: 100%; overflow: hidden; background: #1a1a1a; font-family: 'Segoe UI', sans-serif; user-select: none; }
+        
         #viewport { width: 100vw; height: 100vh; position: relative; overflow: hidden; }
+        
+        /* De Giga Map (5000x5000) */
         #map { 
-            width: 3000px; height: 3000px; background-color: var(--g);
-            background-image: linear-gradient(rgba(255,255,255,0.05) 2px, transparent 2px), linear-gradient(90deg, rgba(255,255,255,0.05) 2px, transparent 2px);
-            background-size: 80px 80px; position: absolute; top: 0; left: 0;
+            width: 5000px; height: 5000px; background-color: var(--g);
+            background-image: radial-gradient(rgba(255,255,255,0.2) 2px, transparent 2px);
+            background-size: 50px 50px; position: absolute; top: 0; left: 0;
+            transition: transform 0.05s linear;
         }
+
+        /* Het Huis */
+        .house {
+            position: absolute; width: 600px; height: 400px; 
+            background: var(--house); border: 15px solid var(--wall);
+            left: 2200px; top: 2300px; border-radius: 10px;
+            box-shadow: inset 0 0 20px rgba(0,0,0,0.05), 0 20px 40px rgba(0,0,0,0.2);
+        }
+        .door {
+            position: absolute; width: 100px; height: 15px; background: #e1b12c;
+            bottom: -15px; left: 250px;
+        }
+
+        /* Spelers */
         .player { 
-            width: 50px; height: 50px; position: absolute; border-radius: 12px; background: #e74c3c;
-            display: flex; align-items: center; justify-content: center; color: white; font-weight: bold;
-            box-shadow: 0 5px 15px rgba(0,0,0,0.3); transition: transform 0.1s linear;
+            width: 40px; height: 40px; position: absolute; border-radius: 50%; background: #e74c3c;
+            display: flex; align-items: center; justify-content: center; color: white; font-weight: bold; font-size: 10px;
+            box-shadow: 0 8px 15px rgba(0,0,0,0.3); z-index: 50; transition: transform 0.1s linear;
         }
-        .local-player { background: var(--p); border: 3px solid white; z-index: 10; }
+        .local-player { background: var(--p); border: 3px solid white; z-index: 60; }
+
+        /* Meubels */
+        .furniture {
+            position: absolute; font-size: 30px; z-index: 20;
+            display: flex; align-items: center; justify-content: center;
+            filter: drop-shadow(0 5px 5px rgba(0,0,0,0.3));
+        }
+
+        /* Interface */
         #ui { 
-            position: fixed; top: 20px; left: 20px; z-index: 100; background: white; 
-            padding: 20px; border-radius: 16px; box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            position: fixed; top: 20px; left: 20px; z-index: 100; background: rgba(255,255,255,0.95); 
+            padding: 20px; border-radius: 16px; box-shadow: 0 10px 30px rgba(0,0,0,0.2); width: 200px;
         }
-        button { background: var(--s); color: white; border: none; padding: 10px; border-radius: 8px; width: 100%; cursor: pointer; font-weight: bold; }
-        #status { font-size: 11px; margin-top: 5px; color: #7f8c8d; }
+        .btn { background: var(--s); color: white; border: none; padding: 12px; border-radius: 8px; width: 100%; cursor: pointer; font-weight: bold; margin-top: 10px; transition: 0.2s;}
+        .btn:hover { filter: brightness(1.1); transform: scale(1.02); }
+        .btn-shop { background: #9b59b6; }
+        #status { font-size: 12px; margin-top: 10px; color: #e74c3c; font-weight: bold; text-align: center; }
     </style>
 </head>
 <body>
 
 <div id="ui">
-    <div style="font-size: 24px; font-weight: bold;">💰 €<span id="money">0</span></div>
-    <button onclick="work()">WERKEN</button>
-    <div id="status">Verbinden...</div>
+    <div style="font-size: 28px; font-weight: 900; color: #2f3640;">💰 €<span id="money">100</span></div>
+    <button class="btn" onclick="work()">💼 WERKEN (+€20)</button>
+    <hr style="border: 0; border-top: 2px solid #f1f2f6; margin: 15px 0;">
+    <p style="margin:0 0 5px 0; font-size: 12px; font-weight: bold;">Decoratie (Klik om te plaatsen):</p>
+    <button class="btn btn-shop" onclick="buyFurniture('🪑', 50)">Koop Stoel (€50)</button>
+    <button class="btn btn-shop" onclick="buyFurniture('🪴', 30)">Koop Plant (€30)</button>
+    <div id="status">Verbinden met server...</div>
 </div>
 
 <div id="viewport">
-    <div id="map"></div>
+    <div id="map">
+        <!-- Het huis -->
+        <div class="house">
+            <div class="door"></div>
+            <p style="text-align: center; color: #bdc3c7; font-weight: bold; font-size: 24px; margin-top: 150px;">Jouw Huis</p>
+        </div>
+    </div>
 </div>
 
 <script>
-    // AUTOMATISCHE CONFIGURATIE
+    // SUPABASE CONFIGURATIE
     const URL = 'https://dvnbmzepheskjvhcydta.supabase.co';
     const KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImR2bmJtemVwaGVza2p2aGN5ZHRhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzgzMjc1NjcsImV4cCI6MjA5MzkwMzU2N30.OW_8kqcRnDd_i2v1EcSn3IwoWKAsspyLQ3MUOIUD2mY';
     
     const supabase = supabase.createClient(URL, KEY);
-    const channel = supabase.channel('room_1', { config: { broadcast: { self: false } } });
+    const channel = supabase.channel('giga_world', { config: { broadcast: { self: false, ack: true } } });
 
     const map = document.getElementById('map');
-    let myId = "ID_" + Math.floor(Math.random() * 9999);
-    let money = 0;
-    let x = 1500, y = 1500, vx = 0, vy = 0;
+    let myId = "P_" + Math.floor(Math.random() * 9999);
+    let money = 100; // Je start met 100 euro!
+    
+    // Start in het huis!
+    let x = 2500, y = 2500, vx = 0, vy = 0;
     const keys = {};
 
-    // Multiplayer Verbinding
+    // --- MULTIPLAYER LOGICA ---
     channel.on('broadcast', { event: 'move' }, (payload) => {
         const d = payload.payload;
         let p = document.getElementById(d.id);
@@ -63,26 +104,40 @@
             map.appendChild(p);
         }
         p.style.transform = `translate(${d.x}px, ${d.y}px)`;
-    }).subscribe((s) => {
-        if (s === 'SUBSCRIBED') document.getElementById('status').innerText = "🟢 Online met vrienden";
     });
 
-    // Besturing
+    channel.on('broadcast', { event: 'place_item' }, (payload) => {
+        const d = payload.payload;
+        placeFurnitureOnMap(d.emoji, d.x, d.y);
+    });
+
+    channel.subscribe((status) => {
+        const statusDiv = document.getElementById('status');
+        if (status === 'SUBSCRIBED') {
+            statusDiv.innerText = "🟢 SERVER ONLINE";
+            statusDiv.style.color = "#2ecc71";
+        } else {
+            statusDiv.innerText = "🔴 " + status;
+        }
+    });
+
+    // --- DE GAME LOGICA ---
     window.onkeydown = (e) => keys[e.code] = true;
     window.onkeyup = (e) => keys[e.code] = false;
 
     function loop() {
-        if (keys['KeyW'] || keys['ArrowUp']) vy -= 0.7;
-        if (keys['KeyS'] || keys['ArrowDown']) vy += 0.7;
-        if (keys['KeyA'] || keys['ArrowLeft']) vx -= 0.7;
-        if (keys['KeyD'] || keys['ArrowRight']) vx += 0.7;
+        const speed = 1.2;
+        if (keys['KeyW'] || keys['ArrowUp']) vy -= speed;
+        if (keys['KeyS'] || keys['ArrowDown']) vy += speed;
+        if (keys['KeyA'] || keys['ArrowLeft']) vx -= speed;
+        if (keys['KeyD'] || keys['ArrowRight']) vx += speed;
 
-        vx *= 0.9; vy *= 0.9;
+        vx *= 0.85; vy *= 0.85; // Frictie
         x += vx; y += vy;
 
-        // Grens check
-        x = Math.max(0, Math.min(2950, x));
-        y = Math.max(0, Math.min(2950, y));
+        // Blijf binnen de 5000x5000 map
+        x = Math.max(0, Math.min(4950, x));
+        y = Math.max(0, Math.min(4950, y));
 
         let me = document.getElementById(myId);
         if (!me) {
@@ -91,21 +146,52 @@
             map.appendChild(me);
         }
 
+        // Beweeg speler en camera
         me.style.transform = `translate(${x}px, ${y}px)`;
-        map.style.left = (window.innerWidth/2 - x - 25) + 'px';
-        map.style.top = (window.innerHeight/2 - y - 25) + 'px';
+        map.style.transform = `translate(${window.innerWidth/2 - x - 20}px, ${window.innerHeight/2 - y - 20}px)`;
 
+        // Stuur positie door als we bewegen
         if (Math.abs(vx) > 0.1 || Math.abs(vy) > 0.1) {
             channel.send({ type: 'broadcast', event: 'move', payload: { id: myId, x, y } });
         }
         requestAnimationFrame(loop);
     }
 
+    // --- WERK & WINKEL LOGICA ---
     function work() {
-        money += 10;
+        money += 20;
+        updateMoney();
+    }
+
+    function buyFurniture(emoji, price) {
+        if (money >= price) {
+            money -= price;
+            updateMoney();
+            
+            // Plaats het precies waar de speler staat
+            placeFurnitureOnMap(emoji, x, y);
+            
+            // Vertel de andere spelers dat je iets gebouwd hebt!
+            channel.send({ type: 'broadcast', event: 'place_item', payload: { emoji: emoji, x: x, y: y } });
+        } else {
+            alert("Je hebt niet genoeg geld! Ga eerst werken.");
+        }
+    }
+
+    function placeFurnitureOnMap(emoji, pX, pY) {
+        let item = document.createElement('div');
+        item.className = 'furniture';
+        item.innerText = emoji;
+        // Zet het item neer (kleine correctie zodat het mooi in het midden staat)
+        item.style.transform = `translate(${pX}px, ${pY - 10}px)`;
+        map.appendChild(item);
+    }
+
+    function updateMoney() {
         document.getElementById('money').innerText = money;
     }
 
+    // Start het spel
     loop();
 </script>
 </body>
