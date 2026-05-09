@@ -2,103 +2,182 @@
 <html lang="nl">
 <head>
     <meta charset="UTF-8">
-    <title>Multiplayer Life Sim</title>
+    <title>Life Sim Pro - Multiplayer</title>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
-        body { margin: 0; overflow: hidden; background: #27ae60; font-family: 'Segoe UI', sans-serif; }
-        #game-world { width: 100vw; height: 100vh; position: relative; }
+        :root { --primary: #3498db; --success: #2ecc71; --grass: #27ae60; --grid: rgba(255,255,255,0.1); }
         
+        body, html { margin: 0; padding: 0; width: 100%; height: 100%; overflow: hidden; background: #1a1a1a; font-family: 'Inter', sans-serif; }
+
+        /* De Map */
+        #viewport { width: 100vw; height: 100vh; position: relative; overflow: hidden; }
+        #map { 
+            width: 3000px; height: 3000px; 
+            background-color: var(--grass);
+            background-image: 
+                linear-gradient(var(--grid) 2px, transparent 2px),
+                linear-gradient(90deg, var(--grid) 2px, transparent 2px);
+            background-size: 100px 100px;
+            position: absolute; top: 0; left: 0;
+            transition: transform 0.1s cubic-bezier(0.1, 0.1, 0.1, 1);
+        }
+
+        /* Spelers */
         .player { 
-            width: 40px; height: 40px; 
-            position: absolute; 
-            background: #e74c3c; 
-            border-radius: 50%; 
+            width: 50px; height: 50px; position: absolute; 
+            border-radius: 12px; background: #e74c3c;
+            box-shadow: 0 10px 20px rgba(0,0,0,0.3);
             display: flex; align-items: center; justify-content: center;
-            color: white; font-size: 10px; font-weight: bold;
-            box-shadow: 0 4px 10px rgba(0,0,0,0.2);
-            transition: left 0.1s linear, top 0.1s linear; /* Voor smooth netwerk beweging */
+            color: white; font-weight: bold; font-size: 12px;
+            z-index: 5;
+        }
+        .local-player { 
+            background: var(--primary); 
+            border: 3px solid white;
+            z-index: 10;
+        }
+        .player::after { /* De schaduw op de grond */
+            content: ''; position: absolute; bottom: -15px; width: 30px; height: 10px;
+            background: rgba(0,0,0,0.2); border-radius: 50%;
         }
 
-        .local-player { background: #3498db; border: 3px solid white; z-index: 10; }
-
+        /* Interface */
         #ui { 
-            position: fixed; top: 20px; left: 20px; 
-            background: white; padding: 20px; border-radius: 12px; 
-            box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+            position: fixed; top: 20px; left: 20px; z-index: 100;
+            background: rgba(255, 255, 255, 0.9); padding: 20px; 
+            border-radius: 16px; backdrop-filter: blur(10px);
+            box-shadow: 0 8px 32px rgba(0,0,0,0.15); border: 1px solid rgba(255,255,255,0.3);
         }
+        .stat { font-size: 24px; font-weight: 800; color: #2c3e50; margin-bottom: 10px; }
         button { 
-            background: #2ecc71; border: none; padding: 10px 20px; 
-            color: white; border-radius: 5px; cursor: pointer; font-weight: bold;
+            background: var(--success); color: white; border: none; padding: 12px 24px;
+            border-radius: 8px; font-weight: bold; cursor: pointer; transition: 0.2s;
+            width: 100%; font-size: 16px;
         }
-        button:active { transform: scale(0.95); }
+        button:hover { transform: translateY(-2px); box-shadow: 0 5px 15px rgba(46,204,113,0.4); }
+        button:active { transform: translateY(0); }
     </style>
 </head>
 <body>
 
 <div id="ui">
-    <h2 style="margin:0">💰 €<span id="money">0</span></h2>
-    <p>Beweeg met <b>WASD</b> of <b>Pijltjes</b></p>
+    <div class="stat">💰 €<span id="moneyDisplay">0</span></div>
     <button onclick="work()">WERKEN</button>
+    <p style="font-size: 12px; color: #7f8c8d; margin-top: 10px;">Gebruik <b>WASD</b> om te lopen</p>
 </div>
 
-<div id="game-world"></div>
+<div id="viewport">
+    <div id="map">
+        <!-- Spelers worden hier geplaatst -->
+    </div>
+</div>
 
 <script>
-    // --- CONFIGURATIE ---
-    // Maak een gratis account op supabase.com voor je eigen keys
-    const SUPABASE_URL = 'JOUW_SUPABASE_URL';
-    const SUPABASE_KEY = 'JOUW_SUPABASE_ANON_KEY';
-    // const supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
-
-    const world = document.getElementById('game-world');
-    const moneyDisplay = document.getElementById('money');
+    // --- CONFIGURATIE (VUL HIER JE KEYS IN) ---
+    const SUPABASE_URL = 'JOUW_URL_HIER';
+    const SUPABASE_KEY = 'JOUW_ANON_KEY_HIER';
     
-    let myId = "player_" + Math.floor(Math.random() * 10000);
-    let money = 0;
-    let pos = { x: 500, y: 300 };
-    let keys = {};
+    // Initialiseer Supabase alleen als de keys zijn ingevuld
+    let supabase = null;
+    let channel = null;
+    if (SUPABASE_URL !== 'JOUW_URL_HIER') {
+        supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+        channel = supabase.channel('world-1');
+    }
 
-    // --- SMOOTH MOVEMENT ENGINE ---
+    const map = document.getElementById('map');
+    const moneyDisplay = document.getElementById('moneyDisplay');
+    
+    let myId = "p_" + Math.floor(Math.random() * 9999);
+    let money = 0;
+    
+    // Physics Variabelen
+    let pX = 1500, pY = 1500; // Start in het midden van de map
+    let vX = 0, vY = 0;
+    const acceleration = 0.8;
+    const friction = 0.85;
+    const maxSpeed = 8;
+    
+    const keys = {};
     window.addEventListener('keydown', e => keys[e.code] = true);
     window.addEventListener('keyup', e => keys[e.code] = false);
 
-    function gameLoop() {
-        let moved = false;
-        const speed = 5;
+    // --- DE GAME LOOP ---
+    function update() {
+        // Beweging logica
+        if (keys['KeyW'] || keys['ArrowUp']) vY -= acceleration;
+        if (keys['KeyS'] || keys['ArrowDown']) vY += acceleration;
+        if (keys['KeyA'] || keys['ArrowLeft']) vX -= acceleration;
+        if (keys['KeyD'] || keys['ArrowRight']) vX += acceleration;
 
-        if (keys['ArrowUp'] || keys['KeyW']) { pos.y -= speed; moved = true; }
-        if (keys['ArrowDown'] || keys['KeyS']) { pos.y += speed; moved = true; }
-        if (keys['ArrowLeft'] || keys['KeyA']) { pos.x -= speed; moved = true; }
-        if (keys['ArrowRight'] || keys['KeyD']) { pos.x += speed; moved = true; }
+        // Pas frictie en snelheid toe
+        vX *= friction;
+        vY *= friction;
+        
+        pX += vX;
+        pY += vY;
 
-        if (moved) {
-            updateLocalPlayer();
-            // Hier zou de code komen om naar de server te sturen:
-            // broadcastPos(myId, pos); 
-        }
-        requestAnimationFrame(gameLoop);
+        // Grenzen van de map (3000x3000px)
+        pX = Math.max(0, Math.min(3000 - 50, pX));
+        pY = Math.max(0, Math.min(3000 - 50, pY));
+
+        draw();
+        requestAnimationFrame(update);
     }
 
-    function updateLocalPlayer() {
+    function draw() {
         let me = document.getElementById(myId);
         if (!me) {
             me = document.createElement('div');
             me.id = myId;
             me.className = 'player local-player';
             me.innerText = "JIJ";
-            world.appendChild(me);
+            map.appendChild(me);
         }
-        me.style.left = pos.x + 'px';
-        me.style.top = pos.y + 'px';
+
+        // Verplaats speler
+        me.style.transform = `translate(${pX}px, ${pY}px)`;
+
+        // Camera volgt speler (Viewport centreren)
+        const camX = (window.innerWidth / 2) - pX - 25;
+        const camY = (window.innerHeight / 2) - pY - 25;
+        map.style.transform = `translate(${camX}px, ${camY}px)`;
+
+        // Stuur positie naar anderen (broadcast)
+        if (channel && (Math.abs(vX) > 0.1 || Math.abs(vY) > 0.1)) {
+            channel.send({
+                type: 'broadcast',
+                event: 'move',
+                payload: { id: myId, x: pX, y: pY }
+            });
+        }
+    }
+
+    // Luister naar andere spelers
+    if (channel) {
+        channel.on('broadcast', { event: 'move' }, (payload) => {
+            const data = payload.payload;
+            let other = document.getElementById(data.id);
+            if (!other) {
+                other = document.createElement('div');
+                other.id = data.id;
+                other.className = 'player';
+                other.innerText = "VRIEND";
+                map.appendChild(other);
+            }
+            other.style.transform = `translate(${data.x}px, ${data.y}px)`;
+        }).subscribe();
     }
 
     function work() {
-        money += 10;
+        money += 50;
         moneyDisplay.innerText = money;
+        // Kleine visuele feedback
+        document.querySelector('.local-player').style.filter = "brightness(1.5)";
+        setTimeout(() => document.querySelector('.local-player').style.filter = "none", 100);
     }
 
-    // Start de game
-    gameLoop();
+    update(); // Start de loop
 </script>
 
 </body>
