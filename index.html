@@ -2,44 +2,31 @@
 <html lang="nl">
 <head>
     <meta charset="UTF-8">
-    <title>PUTSIE WORLD - Multiplayer</title>
+    <title>PUTSIE WORLD - Fixed & Fast</title>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <link href="https://fonts.googleapis.com/css2?family=Fredoka+One&family=Quicksand:wght@500;700&display=swap" rel="stylesheet">
     <style>
-        :root { --p: #ff4757; --s: #2ed573; --b: #1e90ff; --grass: #7bed9f; --ui: rgba(255, 255, 255, 0.9); }
+        :root { --p: #ff4757; --s: #2ed573; --b: #1e90ff; --grass: #7bed9f; }
         body, html { margin: 0; padding: 0; width: 100%; height: 100%; overflow: hidden; background: #2f3542; font-family: 'Quicksand', sans-serif; }
 
-        /* Login */
-        #login { position: fixed; inset: 0; background: linear-gradient(135deg, #1e90ff, #70a1ff); z-index: 1000; display: flex; align-items: center; justify-content: center; }
-        .login-card { background: white; padding: 40px; border-radius: 30px; text-align: center; box-shadow: 0 20px 0 rgba(0,0,0,0.1); width: 320px; }
-        h1 { font-family: 'Fredoka One', cursive; color: #1e90ff; font-size: 38px; margin-bottom: 10px; }
-        
-        /* De Wereld */
-        #viewport { width: 100vw; height: 100vh; position: relative; overflow: hidden; cursor: crosshair; }
-        #map { 
-            width: 8000px; height: 8000px; background: var(--grass); position: absolute;
-            background-image: radial-gradient(rgba(0,0,0,0.05) 2px, transparent 2px); background-size: 60px 60px;
-            will-change: transform;
-        }
+        /* Login Scherm */
+        #login { position: fixed; inset: 0; background: #1e90ff; z-index: 1000; display: flex; align-items: center; justify-content: center; }
+        .login-card { background: white; padding: 40px; border-radius: 30px; text-align: center; width: 320px; box-shadow: 0 15px 30px rgba(0,0,0,0.2); }
+        h1 { font-family: 'Fredoka One', cursive; color: #1e90ff; margin: 0 0 10px; }
+        input { width: 100%; padding: 15px; border-radius: 12px; border: 2px solid #eee; margin-bottom: 15px; box-sizing: border-box; font-size: 16px; }
 
-        /* Gebouwen & Spelers */
-        .obj { position: absolute; font-size: 70px; transform: translate(-50%, -80%); z-index: 10; filter: drop-shadow(0 10px 15px rgba(0,0,0,0.2)); transition: 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
-        .player { width: 50px; height: 50px; position: absolute; border-radius: 50%; background: var(--p); z-index: 100; display: flex; align-items: center; justify-content: center; color: white; font-weight: bold; border: 4px solid white; box-shadow: 0 10px 20px rgba(0,0,0,0.2); transform: translate(-50%, -50%); transition: 0.1s linear; }
-        .player::after { content: attr(data-name); position: absolute; top: -25px; background: rgba(0,0,0,0.5); padding: 2px 8px; border-radius: 10px; font-size: 10px; white-space: nowrap; }
-        .local { background: var(--b) !important; z-index: 110; }
+        /* Map & Spelers */
+        #map { width: 8000px; height: 8000px; background: var(--grass); position: absolute; transition: 0.1s linear; }
+        .player { width: 50px; height: 50px; position: absolute; border-radius: 50%; background: var(--p); border: 3px solid white; transform: translate(-50%, -50%); z-index: 100; font-weight: bold; color: white; display: flex; align-items: center; justify-content: center; }
+        .player::before { content: attr(data-name); position: absolute; top: -25px; background: rgba(0,0,0,0.6); padding: 2px 8px; border-radius: 5px; font-size: 10px; }
+        .local { background: var(--b) !important; }
+        .obj { position: absolute; font-size: 50px; transform: translate(-50%, -70%); z-index: 10; }
 
         /* HUD */
-        #hud { position: fixed; top: 20px; left: 20px; z-index: 500; background: var(--ui); padding: 20px; border-radius: 25px; box-shadow: 0 10px 30px rgba(0,0,0,0.1); width: 280px; backdrop-filter: blur(10px); border: 2px solid white; }
-        .money-badge { font-family: 'Fredoka One'; font-size: 32px; color: #2f3542; display: flex; align-items: center; gap: 10px; }
-        .btn { background: var(--s); color: white; border: none; padding: 15px; border-radius: 15px; width: 100%; cursor: pointer; font-weight: 900; margin: 10px 0; font-size: 16px; box-shadow: 0 5px 0 #26af5a; transition: 0.1s; }
-        .btn:active { transform: translateY(3px); box-shadow: 0 2px 0 #26af5a; }
-        
-        .shop { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-top: 10px; max-height: 300px; overflow-y: auto; padding-right: 5px; }
-        .item { background: white; border: 2px solid #f1f2f6; border-radius: 12px; padding: 10px 5px; cursor: pointer; font-size: 24px; text-align: center; transition: 0.2s; }
-        .item:hover { border-color: var(--b); transform: scale(1.05); }
-        .item span { display: block; font-size: 10px; font-weight: bold; margin-top: 5px; color: #747d8c; }
-
-        #status-dot { width: 10px; height: 10px; background: #ffa502; border-radius: 50%; display: inline-block; margin-right: 5px; }
+        #hud { position: fixed; top: 20px; left: 20px; z-index: 500; background: white; padding: 20px; border-radius: 20px; width: 220px; box-shadow: 0 10px 20px rgba(0,0,0,0.1); }
+        .btn { background: var(--s); color: white; border: none; padding: 12px; border-radius: 12px; width: 100%; cursor: pointer; font-weight: bold; margin-top: 10px; }
+        .shop { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 5px; margin-top: 10px; }
+        .item { background: #f8f9fa; border: 1px solid #ddd; border-radius: 8px; cursor: pointer; text-align: center; padding: 5px; font-size: 20px; }
     </style>
 </head>
 <body>
@@ -47,98 +34,111 @@
 <div id="login">
     <div class="login-card">
         <h1>PUTSIE WORLD</h1>
-        <p>Kies je naam om de stad te betreden</p>
-        <input type="text" id="nick" placeholder="Naam..." style="width:100%; padding:15px; border-radius:15px; border:2px solid #eee; margin-bottom:20px; font-size:18px; text-align:center;">
-        <button class="btn" onclick="start()">STARTEN 🚀</button>
+        <p id="msg">Voer je naam in om te starten</p>
+        <input type="text" id="nick" placeholder="Jouw Naam...">
+        <button class="btn" onclick="tryLogin()">START SPEL 🚀</button>
     </div>
 </div>
 
 <div id="hud" style="display:none">
-    <div class="money-badge">💰 <span id="m-val">250</span></div>
+    <div style="font-size: 24px; font-weight: 900;">💰 €<span id="money-val">?</span></div>
     <button class="btn" onclick="work()">WERKEN (+€50)</button>
-    <div style="font-size: 12px; font-weight: bold; color: #747d8c; margin-top: 15px;">BOUW-MENU</div>
-    <div class="shop" id="catalog"></div>
-    <div style="font-size: 11px; margin-top: 15px;"><span id="status-dot"></span> <span id="s-text">Verbinden...</span></div>
+    <div class="shop" id="shop"></div>
+    <div id="debug" style="font-size: 9px; color: gray; margin-top: 10px;">Verbonden...</div>
 </div>
 
-<div id="viewport">
-    <div id="map"></div>
-</div>
+<div id="map"></div>
 
 <script>
+    // CONFIG
     const URL = 'https://dvnbmzepheskjvhcydta.supabase.co';
     const KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImR2bmJtemVwaGVza2p2aGN5ZHRhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzgzMjc1NjcsImV4cCI6MjA5MzkwMzU2N30.OW_8kqcRnDd_i2v1EcSn3IwoWKAsspyLQ3MUOIUD2mY';
-    const supabase = supabase.createClient(URL, KEY);
+    const supabaseClient = supabase.createClient(URL, KEY);
 
     let nickname = "";
     let money = 250;
     let x = 4000, y = 4000, vx = 0, vy = 0;
     const keys = {};
-    const items = [
-        {e:'🏠', p:100, n:'Huis'}, {e:'🏡', p:150, n:'Villa'}, {e:'🏢', p:500, n:'Flat'}, 
-        {e:'🏰', p:2000, n:'Kasteel'}, {e:'🌳', p:20, n:'Boom'}, {e:'🌴', p:30, n:'Palm'},
-        {e:'🏪', p:400, n:'Winkel'}, {e:'🚑', p:800, n:'Hospitaal'}, {e:'🚨', p:600, n:'Politie'},
-        {e:'⛲', p:300, n:'Fontein'}, {e:'🏟️', p:5000, n:'Stadion'}, {e:'🎡', p:3500, n:'Pretpark'},
-        {e:'🚗', p:250, n:'Auto'}, {e:'🚤', p:500, n:'Boot'}, {e:'🛹', p:50, n:'Skatepark'}
-    ];
+    const shopItems = ['🏠', '🏡', '🏢', '🏰', '🌳', '🏪', '🚑', '🚨', '⛲', '🏟️', '🎡', '🚗'];
 
-    function start() {
-        nickname = document.getElementById('nick').value;
-        if(nickname.length < 2) return alert("Naam te kort!");
-        document.getElementById('login').style.display = 'none';
-        document.getElementById('hud').style.display = 'block';
+    // --- LOGIN LOGICA ---
+    async function tryLogin() {
+        const input = document.getElementById('nick').value;
+        if(input.length < 2) return alert("Naam te kort!");
         
-        // Vul shop
-        const cat = document.getElementById('catalog');
-        items.forEach(i => {
-            let div = document.createElement('div');
-            div.className = 'item';
-            div.innerHTML = `${i.e} <span>€${i.p}</span>`;
-            div.onclick = () => build(i);
-            cat.appendChild(div);
+        nickname = input;
+        document.getElementById('msg').innerText = "Laden...";
+
+        try {
+            // Check of gebruiker al bestaat, zo niet: maak aan (Upsert)
+            const { data, error } = await supabaseClient
+                .from('putsie_users')
+                .upsert({ id: nickname }, { onConflict: 'id' })
+                .select();
+
+            if (error) throw error;
+            
+            money = data[0].money || 250;
+            document.getElementById('money-val').innerText = money;
+            
+            // Start het spel
+            document.getElementById('login').style.display = 'none';
+            document.getElementById('hud').style.display = 'block';
+            initGame();
+        } catch (err) {
+            console.error(err);
+            alert("Database fout! Check of je de SQL code hebt uitgevoerd.");
+            // Forceer start voor testen
+            document.getElementById('login').style.display = 'none';
+            document.getElementById('hud').style.display = 'block';
+            initGame();
+        }
+    }
+
+    function initGame() {
+        // Shop vullen
+        const s = document.getElementById('shop');
+        shopItems.forEach(i => {
+            let d = document.createElement('div');
+            d.className = 'item'; d.innerText = i;
+            d.onclick = () => build(i);
+            s.appendChild(d);
         });
 
-        loadWorld();
-        connectMultiplayer();
-        requestAnimationFrame(loop);
-    }
-
-    async function loadWorld() {
-        const { data, error } = await supabase.from('putsie_objects').select('*');
-        if(!error) data.forEach(renderObj);
-    }
-
-    function connectMultiplayer() {
-        const chan = supabase.channel('putsie_main')
-        .on('broadcast', { event: 'm' }, (p) => {
-            let player = document.getElementById(p.payload.id);
-            if(!player) {
-                player = document.createElement('div');
-                player.id = p.payload.id; player.className = 'player';
-                player.setAttribute('data-name', p.payload.n);
-                document.getElementById('map').appendChild(player);
+        // Multiplayer kanalen
+        const chan = supabaseClient.channel('world')
+        .on('broadcast', { event: 'pos' }, (p) => {
+            let other = document.getElementById(p.payload.id);
+            if(!other) {
+                other = document.createElement('div');
+                other.id = p.payload.id; other.className = 'player';
+                other.setAttribute('data-name', p.payload.id);
+                document.getElementById('map').appendChild(other);
             }
-            player.style.left = p.payload.x + 'px'; player.style.top = p.payload.y + 'px';
+            other.style.left = p.payload.x + 'px'; other.style.top = p.payload.y + 'px';
         })
         .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'putsie_objects' }, (p) => {
             renderObj(p.new);
         })
-        .subscribe((s) => {
-            if(s === 'SUBSCRIBED') {
-                document.getElementById('status-dot').style.background = '#2ed573';
-                document.getElementById('s-text').innerText = "Verbonden met Putsie Server";
-            }
-        });
-        window.chan = chan;
+        .subscribe();
+
+        window.gameChan = chan;
+        loadObjects();
+        requestAnimationFrame(loop);
+    }
+
+    async function loadObjects() {
+        const { data } = await supabaseClient.from('putsie_objects').select('*');
+        if(data) data.forEach(renderObj);
     }
 
     function loop() {
-        if(keys['KeyW'] || keys['ArrowUp']) vy -= 1.2;
-        if(keys['KeyS'] || keys['ArrowDown']) vy += 1.2;
-        if(keys['KeyA'] || keys['ArrowLeft']) vx -= 1.2;
-        if(keys['KeyD'] || keys['ArrowRight']) vx += 1.2;
+        if(keys['KeyW'] || keys['ArrowUp']) vy -= 1;
+        if(keys['KeyS'] || keys['ArrowDown']) vy += 1;
+        if(keys['KeyA'] || keys['ArrowLeft']) vx -= 1;
+        if(keys['KeyD'] || keys['ArrowRight']) vx += 1;
 
-        vx *= 0.88; vy *= 0.88;
+        vx *= 0.9; vy *= 0.9;
         x += vx; y += vy;
 
         let me = document.getElementById('me');
@@ -149,32 +149,34 @@
             document.getElementById('map').appendChild(me);
         }
         me.style.left = x + 'px'; me.style.top = y + 'px';
-        document.getElementById('map').style.transform = `translate(${window.innerWidth/2 - x}px, ${window.innerHeight/2 - y}px)`;
+        
+        // Camera centreren
+        document.getElementById('map').style.left = (window.innerWidth/2 - x) + 'px';
+        document.getElementById('map').style.top = (window.innerHeight/2 - y) + 'px';
 
-        if(window.chan) {
-            window.chan.send({ type: 'broadcast', event: 'm', payload: { id: nickname, n: nickname, x, y }});
+        if(window.gameChan) {
+            window.gameChan.send({ type: 'broadcast', event: 'pos', payload: { id: nickname, x, y }});
         }
         requestAnimationFrame(loop);
     }
 
-    async function build(item) {
-        if(money < item.p) return alert("Niet genoeg geld!");
-        money -= item.p;
-        document.getElementById('m-val').innerText = money;
-        const { error } = await supabase.from('putsie_objects').insert([{ type: item.e, x, y, owner: nickname }]);
-        if(error) alert("Bouwfout! Check of de database tabel 'putsie_objects' bestaat.");
+    async function build(type) {
+        if(money < 50) return alert("Te weinig geld!");
+        money -= 50;
+        document.getElementById('money-val').innerText = money;
+        await supabaseClient.from('putsie_objects').insert([{ type, x, y, owner: nickname }]);
     }
 
     function renderObj(obj) {
         if(document.getElementById(obj.id)) return;
-        const div = document.createElement('div');
-        div.id = obj.id; div.className = 'obj';
-        div.innerText = obj.type;
-        div.style.left = obj.x + 'px'; div.style.top = obj.y + 'px';
-        document.getElementById('map').appendChild(div);
+        const d = document.createElement('div');
+        d.id = obj.id; d.className = 'obj';
+        d.innerText = obj.type;
+        d.style.left = obj.x + 'px'; d.style.top = obj.y + 'px';
+        document.getElementById('map').appendChild(d);
     }
 
-    function work() { money += 50; document.getElementById('m-val').innerText = money; }
+    function work() { money += 50; document.getElementById('money-val').innerText = money; }
     window.onkeydown = (e) => keys[e.code] = true;
     window.onkeyup = (e) => keys[e.code] = false;
 </script>
