@@ -2,30 +2,37 @@
 <html lang="nl">
 <head>
     <meta charset="UTF-8">
-    <title>PUTSIE WORLD - Fixed & Fast</title>
+    <title>PUTSIE WORLD - Solo & Co-op</title>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <link href="https://fonts.googleapis.com/css2?family=Fredoka+One&family=Quicksand:wght@500;700&display=swap" rel="stylesheet">
     <style>
-        :root { --p: #ff4757; --s: #2ed573; --b: #1e90ff; --grass: #7bed9f; }
+        :root { --p: #ff4757; --s: #2ed573; --b: #1e90ff; --grass: #7bed9f; --gray: #95a5a6; }
         body, html { margin: 0; padding: 0; width: 100%; height: 100%; overflow: hidden; background: #2f3542; font-family: 'Quicksand', sans-serif; }
 
-        /* Login Scherm */
+        /* Login & Offline Keuze */
         #login { position: fixed; inset: 0; background: #1e90ff; z-index: 1000; display: flex; align-items: center; justify-content: center; }
-        .login-card { background: white; padding: 40px; border-radius: 30px; text-align: center; width: 320px; box-shadow: 0 15px 30px rgba(0,0,0,0.2); }
-        h1 { font-family: 'Fredoka One', cursive; color: #1e90ff; margin: 0 0 10px; }
-        input { width: 100%; padding: 15px; border-radius: 12px; border: 2px solid #eee; margin-bottom: 15px; box-sizing: border-box; font-size: 16px; }
+        .login-card { background: white; padding: 40px; border-radius: 30px; text-align: center; width: 350px; box-shadow: 0 15px 30px rgba(0,0,0,0.2); }
+        h1 { font-family: 'Fredoka One', cursive; color: #1e90ff; margin: 0 0 10px; font-size: 32px; }
+        input { width: 100%; padding: 15px; border-radius: 12px; border: 2px solid #eee; margin-bottom: 15px; box-sizing: border-box; font-size: 16px; font-family: inherit; }
+        
+        .btn { color: white; border: none; padding: 15px; border-radius: 12px; width: 100%; cursor: pointer; font-weight: bold; margin-top: 10px; font-size: 16px; transition: 0.2s; }
+        .btn-online { background: var(--s); box-shadow: 0 5px 0 #26af5a; }
+        .btn-offline { background: var(--gray); box-shadow: 0 5px 0 #7f8c8d; }
+        .btn:hover { transform: translateY(-2px); opacity: 0.9; }
 
-        /* Map & Spelers */
-        #map { width: 8000px; height: 8000px; background: var(--grass); position: absolute; transition: 0.1s linear; }
+        /* Game UI */
+        #mode-tag { position: fixed; top: 10px; right: 20px; padding: 5px 15px; border-radius: 20px; color: white; font-weight: bold; font-size: 12px; z-index: 600; }
+        .tag-online { background: var(--s); }
+        .tag-offline { background: var(--gray); }
+
+        #map { width: 8000px; height: 8000px; background: var(--grass); position: absolute; }
         .player { width: 50px; height: 50px; position: absolute; border-radius: 50%; background: var(--p); border: 3px solid white; transform: translate(-50%, -50%); z-index: 100; font-weight: bold; color: white; display: flex; align-items: center; justify-content: center; }
         .player::before { content: attr(data-name); position: absolute; top: -25px; background: rgba(0,0,0,0.6); padding: 2px 8px; border-radius: 5px; font-size: 10px; }
-        .local { background: var(--b) !important; }
+        .local { background: var(--b) !important; box-shadow: 0 0 20px rgba(30, 144, 255, 0.5); }
         .obj { position: absolute; font-size: 50px; transform: translate(-50%, -70%); z-index: 10; }
 
-        /* HUD */
         #hud { position: fixed; top: 20px; left: 20px; z-index: 500; background: white; padding: 20px; border-radius: 20px; width: 220px; box-shadow: 0 10px 20px rgba(0,0,0,0.1); }
-        .btn { background: var(--s); color: white; border: none; padding: 12px; border-radius: 12px; width: 100%; cursor: pointer; font-weight: bold; margin-top: 10px; }
-        .shop { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 5px; margin-top: 10px; }
+        .shop { display: grid; grid-template-columns: repeat(4, 1fr); gap: 5px; margin-top: 10px; }
         .item { background: #f8f9fa; border: 1px solid #ddd; border-radius: 8px; cursor: pointer; text-align: center; padding: 5px; font-size: 20px; }
     </style>
 </head>
@@ -34,69 +41,72 @@
 <div id="login">
     <div class="login-card">
         <h1>PUTSIE WORLD</h1>
-        <p id="msg">Voer je naam in om te starten</p>
-        <input type="text" id="nick" placeholder="Jouw Naam...">
-        <button class="btn" onclick="tryLogin()">START SPEL 🚀</button>
+        <p id="msg">Kies hoe je wilt spelen:</p>
+        <input type="text" id="nick" placeholder="Jouw Naam..." maxlength="12">
+        <button class="btn btn-online" onclick="startFlow(false)">ONLINE SPELEN (Opslaan) 🌍</button>
+        <button class="btn btn-offline" onclick="startFlow(true)">OFFLINE SPELEN (Geen save) 🕹️</button>
+        <p id="db-status" style="font-size: 11px; margin-top: 15px; color: orange;">Checking database...</p>
     </div>
 </div>
 
+<div id="mode-tag"></div>
+
 <div id="hud" style="display:none">
-    <div style="font-size: 24px; font-weight: 900;">💰 €<span id="money-val">?</span></div>
-    <button class="btn" onclick="work()">WERKEN (+€50)</button>
+    <div style="font-size: 24px; font-weight: 900;">💰 €<span id="money-val">250</span></div>
+    <button class="btn btn-online" style="padding: 8px;" onclick="work()">💼 WERKEN (+€50)</button>
     <div class="shop" id="shop"></div>
-    <div id="debug" style="font-size: 9px; color: gray; margin-top: 10px;">Verbonden...</div>
 </div>
 
 <div id="map"></div>
 
 <script>
-    // CONFIG
     const URL = 'https://dvnbmzepheskjvhcydta.supabase.co';
     const KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImR2bmJtemVwaGVza2p2aGN5ZHRhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzgzMjc1NjcsImV4cCI6MjA5MzkwMzU2N30.OW_8kqcRnDd_i2v1EcSn3IwoWKAsspyLQ3MUOIUD2mY';
     const supabaseClient = supabase.createClient(URL, KEY);
 
+    let isOfflineMode = false;
     let nickname = "";
     let money = 250;
     let x = 4000, y = 4000, vx = 0, vy = 0;
     const keys = {};
-    const shopItems = ['🏠', '🏡', '🏢', '🏰', '🌳', '🏪', '🚑', '🚨', '⛲', '🏟️', '🎡', '🚗'];
+    const shopItems = ['🏠', '🏡', '🏢', '🏰', '🌳', '🌴', '🏪', '🚑', '🚨', '⛲', '🏟️', '🎡', '🚗', '🛹', '🐶', '🔥'];
 
-    // --- LOGIN LOGICA ---
-    async function tryLogin() {
-        const input = document.getElementById('nick').value;
-        if(input.length < 2) return alert("Naam te kort!");
-        
-        nickname = input;
-        document.getElementById('msg').innerText = "Laden...";
-
+    // Check of de database online is
+    (async function checkDB() {
         try {
-            // Check of gebruiker al bestaat, zo niet: maak aan (Upsert)
-            const { data, error } = await supabaseClient
-                .from('putsie_users')
-                .upsert({ id: nickname }, { onConflict: 'id' })
-                .select();
-
+            const { error } = await supabaseClient.from('putsie_objects').select('id').limit(1);
+            const status = document.getElementById('db-status');
             if (error) throw error;
-            
-            money = data[0].money || 250;
-            document.getElementById('money-val').innerText = money;
-            
-            // Start het spel
-            document.getElementById('login').style.display = 'none';
-            document.getElementById('hud').style.display = 'block';
-            initGame();
-        } catch (err) {
-            console.error(err);
-            alert("Database fout! Check of je de SQL code hebt uitgevoerd.");
-            // Forceer start voor testen
-            document.getElementById('login').style.display = 'none';
-            document.getElementById('hud').style.display = 'block';
-            initGame();
+            status.innerText = "🟢 Database is ONLINE";
+            status.style.color = "#2ed573";
+        } catch (e) {
+            document.getElementById('db-status').innerText = "🔴 Database is OFFLINE (Alleen Solo mogelijk)";
+            document.getElementById('db-status').style.color = "#ff4757";
         }
+    })();
+
+    async function startFlow(offlineChoice) {
+        nickname = document.getElementById('nick').value || "Gast_" + Math.floor(Math.random()*999);
+        isOfflineMode = offlineChoice;
+
+        document.getElementById('login').style.display = 'none';
+        document.getElementById('hud').style.display = 'block';
+        
+        const tag = document.getElementById('mode-tag');
+        if (isOfflineMode) {
+            tag.innerText = "SOLO MODUS (Slaat niet op)";
+            tag.className = "tag-offline";
+        } else {
+            tag.innerText = "LIVE MODUS";
+            tag.className = "tag-online";
+            initOnlineFeatures();
+        }
+
+        buildShop();
+        requestAnimationFrame(loop);
     }
 
-    function initGame() {
-        // Shop vullen
+    function buildShop() {
         const s = document.getElementById('shop');
         shopItems.forEach(i => {
             let d = document.createElement('div');
@@ -104,15 +114,21 @@
             d.onclick = () => build(i);
             s.appendChild(d);
         });
+    }
 
-        // Multiplayer kanalen
-        const chan = supabaseClient.channel('world')
-        .on('broadcast', { event: 'pos' }, (p) => {
+    async function initOnlineFeatures() {
+        // Laad bestaande gebouwen
+        const { data } = await supabaseClient.from('putsie_objects').select('*');
+        if(data) data.forEach(renderObj);
+
+        // Realtime kanaal
+        const chan = supabaseClient.channel('putsieworld')
+        .on('broadcast', { event: 'p' }, (p) => {
             let other = document.getElementById(p.payload.id);
             if(!other) {
                 other = document.createElement('div');
                 other.id = p.payload.id; other.className = 'player';
-                other.setAttribute('data-name', p.payload.id);
+                other.setAttribute('data-name', p.payload.n);
                 document.getElementById('map').appendChild(other);
             }
             other.style.left = p.payload.x + 'px'; other.style.top = p.payload.y + 'px';
@@ -121,15 +137,7 @@
             renderObj(p.new);
         })
         .subscribe();
-
-        window.gameChan = chan;
-        loadObjects();
-        requestAnimationFrame(loop);
-    }
-
-    async function loadObjects() {
-        const { data } = await supabaseClient.from('putsie_objects').select('*');
-        if(data) data.forEach(renderObj);
+        window.chan = chan;
     }
 
     function loop() {
@@ -150,21 +158,29 @@
         }
         me.style.left = x + 'px'; me.style.top = y + 'px';
         
-        // Camera centreren
+        // Camera movement
         document.getElementById('map').style.left = (window.innerWidth/2 - x) + 'px';
         document.getElementById('map').style.top = (window.innerHeight/2 - y) + 'px';
 
-        if(window.gameChan) {
-            window.gameChan.send({ type: 'broadcast', event: 'pos', payload: { id: nickname, x, y }});
+        // Stuur positie alleen als je online bent
+        if(!isOfflineMode && window.chan) {
+            window.chan.send({ type: 'broadcast', event: 'p', payload: { id: nickname, n: nickname, x, y }});
         }
         requestAnimationFrame(loop);
     }
 
     async function build(type) {
-        if(money < 50) return alert("Te weinig geld!");
+        if(money < 50) return;
         money -= 50;
         document.getElementById('money-val').innerText = money;
-        await supabaseClient.from('putsie_objects').insert([{ type, x, y, owner: nickname }]);
+
+        if (isOfflineMode) {
+            // In offline modus plaatsen we het gewoon lokaal
+            renderObj({ id: Math.random(), type, x, y });
+        } else {
+            // Online opslaan
+            await supabaseClient.from('putsie_objects').insert([{ type, x, y, owner: nickname }]);
+        }
     }
 
     function renderObj(obj) {
