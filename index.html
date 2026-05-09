@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Onze Life Simulator</title>
+    <style>
+        body { margin: 0; overflow: hidden; font-family: sans-serif; background: #2ecc71; }
+        #ui { position: absolute; top: 10px; left: 10px; background: rgba(255,255,255,0.8); padding: 15px; border-radius: 8px; }
+        #player { 
+            width: 50px; height: 50px; 
+            background: #e74c3c; position: absolute; 
+            border-radius: 50%; transition: 0.1s;
+            display: flex; align-items: center; justify-content: center; color: white; font-weight: bold;
+        }
+        button { cursor: pointer; padding: 10px; background: #3498db; color: white; border: none; border-radius: 5px; }
+        button:hover { background: #2980b9; }
+    </style>
+</head>
+<body>
+
+    <div id="ui">
+        <h2>💰 Portemonnee: €<span id="money">0</span></h2>
+        <button onclick="work()">Werken (Klik!)</button>
+        <p>Gebruik <b>pijltjestoetsen</b> om te lopen.</p>
+    </div>
+
+    <div id="player">JIJ</div>
+
+    <script>
+        let money = 0;
+        let posX = window.innerWidth / 2;
+        let posY = window.innerHeight / 2;
+        const speed = 15;
+
+        const player = document.getElementById('player');
+        const moneyDisplay = document.getElementById('money');
+
+        // Functie om te werken
+        function work() {
+            money += 10;
+            moneyDisplay.innerText = money;
+            // Kleine animatie
+            player.style.transform = "scale(1.2)";
+            setTimeout(() => player.style.transform = "scale(1)", 100);
+        }
+
+        // Beweging
+        window.addEventListener('keydown', (e) => {
+            if (e.key === 'ArrowUp') posY -= speed;
+            if (e.key === 'ArrowDown') posY += speed;
+            if (e.key === 'ArrowLeft') posX -= speed;
+            if (e.key === 'ArrowRight') posX += speed;
+
+            updatePosition();
+        });
+
+        function updatePosition() {
+            player.style.left = posX + 'px';
+            player.style.top = posY + 'px';
+        }
+
+        updatePosition();
+    </script>
+</body>
+</html>
