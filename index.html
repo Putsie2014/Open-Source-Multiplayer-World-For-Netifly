@@ -432,6 +432,85 @@
             #chat-panel { width: 220px; }
             #players-panel { display: none !important; }
         }
+
+        /* ========= INTERIOR ========= */
+        #interior {
+            position: fixed; inset: 0; z-index: 900;
+            display: none;
+        }
+        #interior.open { display: flex; align-items: center; justify-content: center; }
+        .interior-bg {
+            position: absolute; inset: 0;
+            background: rgba(0,0,0,0.85);
+            backdrop-filter: blur(6px);
+        }
+        .interior-room {
+            position: relative; z-index: 1;
+            width: min(700px, 95vw); height: min(500px, 80vh);
+            border-radius: 24px; overflow: hidden;
+            box-shadow: 0 30px 80px rgba(0,0,0,0.6);
+            animation: roomOpen 0.35s cubic-bezier(0.34, 1.4, 0.64, 1);
+        }
+        @keyframes roomOpen {
+            from { transform: scale(0.6); opacity: 0; }
+            to { transform: scale(1); opacity: 1; }
+        }
+        .room-floor {
+            width: 100%; height: 100%;
+            position: relative;
+            display: flex; flex-direction: column;
+        }
+        .room-header {
+            padding: 18px 24px;
+            display: flex; align-items: center; gap: 12px;
+            font-size: 20px; font-weight: 900;
+        }
+        .room-title { font-size: 22px; }
+        .room-owner { font-size: 13px; opacity: 0.7; margin-left: auto; }
+        .btn-exit {
+            background: rgba(255,255,255,0.2); border: none;
+            border-radius: 10px; color: white;
+            padding: 8px 16px; cursor: pointer;
+            font-weight: 800; font-size: 14px;
+            font-family: 'Nunito', sans-serif;
+            transition: background 0.15s;
+        }
+        .btn-exit:hover { background: rgba(255,255,255,0.35); }
+        .room-body {
+            flex: 1; padding: 20px 24px;
+            display: grid; grid-template-columns: repeat(4, 1fr);
+            gap: 12px; overflow-y: auto;
+        }
+        .room-furniture {
+            aspect-ratio: 1; border-radius: 16px;
+            display: flex; flex-direction: column;
+            align-items: center; justify-content: center;
+            font-size: 32px; cursor: pointer;
+            transition: transform 0.15s, filter 0.15s;
+            background: rgba(255,255,255,0.15);
+            border: 2px solid rgba(255,255,255,0.2);
+        }
+        .room-furniture:hover { transform: scale(1.08); filter: brightness(1.2); }
+        .room-furniture span { font-size: 11px; margin-top: 4px; font-weight: 700; opacity: 0.8; }
+        .room-footer {
+            padding: 14px 24px;
+            font-size: 12px; opacity: 0.6;
+            border-top: 1px solid rgba(255,255,255,0.1);
+        }
+
+        /* Enter hint op gebouwen */
+        .obj.enterable { cursor: pointer; }
+        .obj.enterable::after {
+            content: '⬆️ betred';
+            position: absolute; top: -20px; left: 50%;
+            transform: translateX(-50%);
+            background: rgba(0,0,0,0.7); color: white;
+            font-size: 10px; padding: 2px 6px; border-radius: 6px;
+            font-family: 'Nunito', sans-serif;
+            opacity: 0; transition: opacity 0.2s; white-space: nowrap;
+            pointer-events: none;
+        }
+        .obj.enterable:hover::after { opacity: 1; }
     </style>
 </head>
 <body>
@@ -516,6 +595,23 @@
 <div id="minimap">
     <div class="minimap-label">Kaart</div>
     <canvas id="minimap-canvas" width="160" height="160"></canvas>
+</div>
+
+<!-- INTERIOR -->
+<div id="interior">
+    <div class="interior-bg" onclick="exitBuilding()"></div>
+    <div class="interior-room" id="interior-room">
+        <div class="room-floor" id="room-floor">
+            <div class="room-header" id="room-header">
+                <span id="room-icon">🏠</span>
+                <span class="room-title" id="room-title">Huis</span>
+                <span class="room-owner" id="room-owner"></span>
+                <button class="btn-exit" onclick="exitBuilding()">✖ Verlaten</button>
+            </div>
+            <div class="room-body" id="room-body"></div>
+            <div class="room-footer" id="room-footer">Druk op ESC of klik buiten om te verlaten</div>
+        </div>
+    </div>
 </div>
 
 <!-- WORLD -->
@@ -837,12 +933,19 @@ async function placeObject(item) {
     renderObject(obj, true);
     myObjects.push(id);
 
+    // Broadcast direct naar alle spelers (werkt altijd, ook zonder Realtime op de tabel)
+    if (channel) {
+        channel.send({ type: 'broadcast', event: 'new_obj', payload: {
+            id, type: item.emoji, x: Math.round(obj.x), y: Math.round(obj.y), owner: nickname
+        }});
+    }
+
     if (sb) {
         try {
             await sb.from('putsie_objects').insert([{
                 id, type: item.emoji, x: Math.round(obj.x), y: Math.round(obj.y), owner: nickname
             }]);
-        } catch(e) {}
+        } catch(e) { console.warn('DB insert fout:', e); }
     }
 }
 
@@ -856,6 +959,12 @@ function renderObject(data, isNew = false) {
     el.innerHTML = `${data.type}<div class="obj-tooltip">${data.owner || ''}</div>`;
     el.style.left = data.x + 'px';
     el.style.top = data.y + 'px';
+
+    // Klikken om gebouw te betreden
+    el.addEventListener('click', () => {
+        tryEnterBuilding({ id: data.id, type: data.type, x: data.x, y: data.y, owner: data.owner || '' });
+    });
+
     document.getElementById('map').appendChild(el);
 }
 
@@ -868,6 +977,10 @@ async function clearArea() {
     });
     const ids = [...myObjects];
     myObjects = [];
+    // Broadcast verwijdering naar andere spelers
+    if (channel) {
+        channel.send({ type: 'broadcast', event: 'del_obj', payload: { ids } });
+    }
     if (sb) {
         try { await sb.from('putsie_objects').delete().in('id', ids); } catch(e) {}
     }
@@ -894,6 +1007,16 @@ async function connectSupabase() {
                 if (payload.action === 'work') {
                     addChatMessage({ name: payload.name, msg: '💼 werkt!', system: true });
                 }
+            })
+            .on('broadcast', { event: 'new_obj' }, ({ payload }) => {
+                renderObject(payload);
+            })
+            .on('broadcast', { event: 'del_obj' }, ({ payload }) => {
+                payload.ids.forEach(id => {
+                    const el = document.getElementById('obj_' + id);
+                    if (el) el.remove();
+                    allObjects.delete(id);
+                });
             })
             .on('postgres_changes', {
                 event: 'INSERT', schema: 'public', table: 'putsie_objects'
@@ -1207,12 +1330,148 @@ function notify(msg) {
     setTimeout(() => el.remove(), 3100);
 }
 
+// ===== INTERIOR SYSTEM =====
+const ENTERABLE = {
+    '🏠': { name: 'Huis', color: '#c0392b', floor: '#f5e6d3', furniture: [
+        { e: '🛋️', n: 'Bank' }, { e: '📺', n: 'TV' }, { e: '🛏️', n: 'Bed' },
+        { e: '🚿', n: 'Douche' }, { e: '🪟', n: 'Raam' }, { e: '🖼️', n: 'Schilderij' },
+        { e: '🪴', n: 'Plant' }, { e: '🍳', n: 'Keuken' }
+    ]},
+    '🏢': { name: 'Kantoor', color: '#2980b9', floor: '#dfe6f0', furniture: [
+        { e: '💻', n: 'Computer' }, { e: '🖨️', n: 'Printer' }, { e: '📋', n: 'Agenda' },
+        { e: '☕', n: 'Koffie' }, { e: '📞', n: 'Telefoon' }, { e: '🗂️', n: 'Archief' },
+        { e: '🪑', n: 'Stoel' }, { e: '💡', n: 'Lamp' }
+    ]},
+    '🏰': { name: 'Kasteel', color: '#8e44ad', floor: '#e8daf5', furniture: [
+        { e: '⚔️', n: 'Zwaard' }, { e: '🛡️', n: 'Schild' }, { e: '👑', n: 'Kroon' },
+        { e: '🕯️', n: 'Kaars' }, { e: '🏺', n: 'Vaas' }, { e: '🗝️', n: 'Sleutel' },
+        { e: '🔮', n: 'Kristal' }, { e: '📜', n: 'Perkament' }
+    ]},
+    '🏪': { name: 'Winkel', color: '#27ae60', floor: '#d5f5e3', furniture: [
+        { e: '🛒', n: 'Winkelwagen' }, { e: '💳', n: 'Kassa' }, { e: '🍎', n: 'Fruit' },
+        { e: '🥫', n: 'Blik' }, { e: '🧴', n: 'Product' }, { e: '🏷️', n: 'Prijskaart' },
+        { e: '🛍️', n: 'Tasje' }, { e: '📦', n: 'Doos' }
+    ]},
+    '🏦': { name: 'Bank', color: '#f39c12', floor: '#fef9e7', furniture: [
+        { e: '💰', n: 'Kluis' }, { e: '🏧', n: 'Geldautomaat' }, { e: '💳', n: 'Betaalautomaat' },
+        { e: '📊', n: 'Grafieken' }, { e: '🖊️', n: 'Pen' }, { e: '🧾', n: 'Bon' },
+        { e: '💵', n: 'Geld' }, { e: '🔒', n: 'Slot' }
+    ]},
+    '🏥': { name: 'Ziekenhuis', color: '#e74c3c', floor: '#fadbd8', furniture: [
+        { e: '🩺', n: 'Stethoscoop' }, { e: '💊', n: 'Medicijn' }, { e: '🩹', n: 'Pleister' },
+        { e: '🩻', n: 'Röntgen' }, { e: '🏥', n: 'Bed' }, { e: '💉', n: 'Spuit' },
+        { e: '🧪', n: 'Lab' }, { e: '❤️', n: 'Hart' }
+    ]},
+    '🏟️': { name: 'Stadion', color: '#16a085', floor: '#a8e6cf', furniture: [
+        { e: '⚽', n: 'Bal' }, { e: '🏆', n: 'Trofee' }, { e: '🪑', n: 'Tribune' },
+        { e: '🎽', n: 'Shirt' }, { e: '📣', n: 'Megafoon' }, { e: '🎫', n: 'Ticket' },
+        { e: '🍟', n: 'Friet' }, { e: '🥤', n: 'Drankje' }
+    ]},
+    '🎡': { name: 'Pretpark', color: '#e91e8c', floor: '#fce4ec', furniture: [
+        { e: '🎢', n: 'Achtbaan' }, { e: '🎠', n: 'Draaimolen' }, { e: '🎪', n: 'Tent' },
+        { e: '🍭', n: 'Snoep' }, { e: '🎈', n: 'Ballon' }, { e: '🎯', n: 'Schietstal' },
+        { e: '🍦', n: 'IJs' }, { e: '🎟️', n: 'Ticket' }
+    ]},
+};
+
+let insideBuilding = null;
+
+function tryEnterBuilding(objData) {
+    const config = ENTERABLE[objData.type];
+    if (!config) return;
+    openBuilding(objData, config);
+}
+
+function openBuilding(objData, config) {
+    insideBuilding = objData;
+
+    document.getElementById('room-icon').textContent = objData.type;
+    document.getElementById('room-title').textContent = config.name;
+    document.getElementById('room-owner').textContent = objData.owner ? '🏗️ ' + objData.owner : '';
+
+    const room = document.getElementById('interior-room');
+    const floor = document.getElementById('room-floor');
+    room.style.background = config.floor;
+    floor.style.background = `linear-gradient(135deg, ${config.floor} 0%, ${lighten(config.floor)} 100%)`;
+    document.getElementById('room-header').style.background = config.color;
+    document.getElementById('room-header').style.color = 'white';
+    document.getElementById('room-footer').style.color = config.color;
+
+    const body = document.getElementById('room-body');
+    body.innerHTML = '';
+    config.furniture.forEach(f => {
+        const el = document.createElement('div');
+        el.className = 'room-furniture';
+        el.style.background = config.color + '22';
+        el.style.borderColor = config.color + '44';
+        el.innerHTML = `${f.e}<span>${f.n}</span>`;
+        el.onclick = () => interactFurniture(f, config.color);
+        body.appendChild(el);
+    });
+
+    document.getElementById('interior').classList.add('open');
+    notify(objData.type + ' Betreden: ' + config.name);
+}
+
+function interactFurniture(f, color) {
+    notify(f.e + ' ' + f.n + ' — interessant!');
+    // Kleine kans op geld vinden
+    if (Math.random() < 0.15) {
+        const found = Math.floor(Math.random() * 30) + 10;
+        money += found;
+        updateMoney();
+        notify('💰 Je vond €' + found + ' verstopt!');
+    }
+}
+
+function exitBuilding() {
+    document.getElementById('interior').classList.remove('open');
+    insideBuilding = null;
+}
+
+function lighten(hex) {
+    return hex; // simple passthrough, CSS gradient handles it
+}
+
+// Proximity check: elke 300ms kijken of je bij een gebouw staat
+setInterval(() => {
+    if (insideBuilding) return;
+    document.querySelectorAll('.obj').forEach(el => {
+        const ox = parseFloat(el.style.left);
+        const oy = parseFloat(el.style.top);
+        const dist = Math.hypot(px - ox, py - oy);
+        if (dist < 60) {
+            el.classList.add('enterable');
+        } else {
+            el.classList.remove('enterable');
+        }
+    });
+}, 300);
+
+// E-toets om te betreden
+// (toegevoegd in keyboard listener hieronder)
+
 // ===== KEYBOARD =====
 window.addEventListener('keydown', e => {
     keys[e.code] = true;
-    // Don't intercept chat input
     if (document.activeElement === document.getElementById('chat-input')) return;
-    if (e.code === 'KeyE') earnMoney();
+    if (e.code === 'Escape') { exitBuilding(); return; }
+    if (e.code === 'KeyE') {
+        // Probeer eerst een gebouw te betreden
+        let entered = false;
+        document.querySelectorAll('.obj.enterable').forEach(el => {
+            if (entered) return;
+            const id = el.id.replace('obj_', '');
+            // Zoek de data op
+            const ox = parseFloat(el.style.left);
+            const oy = parseFloat(el.style.top);
+            const type = el.textContent.trim()[...el.textContent.trim()][0]; // eerste emoji
+            const owner = el.querySelector('.obj-tooltip')?.textContent || '';
+            tryEnterBuilding({ id, type, x: ox, y: oy, owner });
+            entered = true;
+        });
+        if (!entered) earnMoney();
+    }
 });
 window.addEventListener('keyup', e => keys[e.code] = false);
 
