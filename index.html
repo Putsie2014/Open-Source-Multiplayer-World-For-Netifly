@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>PUTSIE WORLD 🌍</title>
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.39.3/dist/umd/supabase.min.js"></script>
     <link href="https://fonts.googleapis.com/css2?family=Fredoka+One&family=Nunito:wght@400;600;700;900&display=swap" rel="stylesheet">
     <style>
         :root {
@@ -713,8 +713,7 @@ const mobileKeys = {};
 // ===== INIT =====
 function startGame() {
     nickname = document.getElementById('nick').value.trim() || 'Putsie';
-    
-    // Load saved data
+
     loadSave();
 
     document.getElementById('login').classList.add('hide');
@@ -726,19 +725,17 @@ function startGame() {
 
     buildWorld();
     buildShop('gebouwen');
-    connectSupabase();
-    startGameLoop();
-    
-    // Auto-save
+    startGameLoop();  // altijd starten, onafhankelijk van netwerk
+
+    // Supabase los proberen, fout mag de rest niet blokkeren
+    connectSupabase().catch(e => {
+        console.warn('Supabase fout:', e);
+        setOnline(false);
+    });
+
     setInterval(saveGame, SAVE_INTERVAL);
-    
-    // Clean up ghost players
     setInterval(cleanGhostPlayers, 3000);
-
-    // Minimap update
     setInterval(updateMinimap, 500);
-
-    // Update players list
     setInterval(updatePlayersList, 2000);
 
     notify('👋 Welkom, ' + nickname + '!');
@@ -990,7 +987,18 @@ async function clearArea() {
 // ===== SUPABASE =====
 async function connectSupabase() {
     try {
-        sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+        // Supabase CDN kan 'supabase' of 'window.supabase' exporten
+        const sbLib = (typeof supabase !== 'undefined' && supabase.createClient)
+            ? supabase
+            : (window.supabase || null);
+
+        if (!sbLib) {
+            console.warn('Supabase library niet gevonden, offline mode.');
+            setOnline(false);
+            return;
+        }
+
+        sb = sbLib.createClient(SUPABASE_URL, SUPABASE_KEY);
         
         channel = sb.channel('putsie_world_v4', {
             config: { broadcast: { self: false } }
