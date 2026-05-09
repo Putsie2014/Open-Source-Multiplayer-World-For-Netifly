@@ -2,193 +2,1244 @@
 <html lang="nl">
 <head>
     <meta charset="UTF-8">
-    <title>PUTSIE WORLD - Unbreakable</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PUTSIE WORLD 🌍</title>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Fredoka+One&family=Quicksand:wght@500;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Fredoka+One&family=Nunito:wght@400;600;700;900&display=swap" rel="stylesheet">
     <style>
-        :root { --p: #ff4757; --s: #2ed573; --b: #1e90ff; --grass: #7bed9f; }
-        body, html { margin: 0; padding: 0; width: 100%; height: 100%; overflow: hidden; background: #2f3542; font-family: 'Quicksand', sans-serif; }
+        :root {
+            --red: #ff4757;
+            --green: #2ed573;
+            --blue: #1e90ff;
+            --purple: #a55eea;
+            --yellow: #ffd32a;
+            --orange: #ff6b35;
+            --grass: #4caf70;
+            --grass2: #43a065;
+            --dark: #1a1a2e;
+            --panel: rgba(255,255,255,0.95);
+        }
 
-        /* Login Scherm */
-        #login { position: fixed; inset: 0; background: #1e90ff; z-index: 1000; display: flex; align-items: center; justify-content: center; transition: 0.5s; }
-        .login-card { background: white; padding: 40px; border-radius: 30px; text-align: center; width: 320px; box-shadow: 0 15px 30px rgba(0,0,0,0.2); }
-        h1 { font-family: 'Fredoka One', cursive; color: #1e90ff; margin: 0 0 10px; }
-        input { width: 100%; padding: 15px; border-radius: 12px; border: 2px solid #eee; margin-bottom: 15px; box-sizing: border-box; font-size: 16px; text-align: center; }
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body, html {
+            width: 100%; height: 100%;
+            overflow: hidden;
+            background: var(--dark);
+            font-family: 'Nunito', sans-serif;
+            user-select: none;
+        }
 
-        /* HUD & UI */
-        #hud { position: fixed; top: 20px; left: 20px; z-index: 500; background: white; padding: 20px; border-radius: 20px; width: 240px; box-shadow: 0 10px 20px rgba(0,0,0,0.1); display: none; }
-        .btn { background: var(--s); color: white; border: none; padding: 12px; border-radius: 12px; width: 100%; cursor: pointer; font-weight: bold; margin-top: 10px; font-size: 16px; border-bottom: 4px solid #26af5a; }
-        .btn:active { border-bottom: 0; transform: translateY(4px); }
-        .shop { display: grid; grid-template-columns: repeat(4, 1fr); gap: 5px; margin-top: 10px; }
-        .item { background: #f8f9fa; border: 1px solid #ddd; border-radius: 8px; cursor: pointer; text-align: center; padding: 8px; font-size: 22px; transition: 0.1s; }
-        .item:hover { transform: scale(1.1); background: white; }
+        /* ========= LOGIN ========= */
+        #login {
+            position: fixed; inset: 0;
+            background: linear-gradient(135deg, #0f0c29, #302b63, #24243e);
+            z-index: 2000;
+            display: flex; align-items: center; justify-content: center;
+            transition: opacity 0.6s, transform 0.6s;
+        }
+        #login.hide { opacity: 0; transform: scale(1.1); pointer-events: none; }
+        .login-card {
+            background: white;
+            padding: 45px 40px;
+            border-radius: 28px;
+            text-align: center;
+            width: 340px;
+            box-shadow: 0 30px 60px rgba(0,0,0,0.5);
+            animation: cardPop 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
+        }
+        @keyframes cardPop {
+            from { transform: scale(0.5) translateY(50px); opacity: 0; }
+            to { transform: scale(1) translateY(0); opacity: 1; }
+        }
+        .login-title {
+            font-family: 'Fredoka One', cursive;
+            font-size: 42px;
+            background: linear-gradient(135deg, var(--blue), var(--purple));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 5px;
+        }
+        .login-sub { color: #888; font-size: 13px; margin-bottom: 25px; }
+        .avatar-picker {
+            display: flex; gap: 10px; justify-content: center; margin-bottom: 20px; flex-wrap: wrap;
+        }
+        .avatar-opt {
+            width: 50px; height: 50px; border-radius: 50%; cursor: pointer;
+            border: 3px solid transparent; transition: all 0.2s; font-size: 22px;
+            display: flex; align-items: center; justify-content: center;
+        }
+        .avatar-opt:hover, .avatar-opt.selected { border-color: var(--blue); transform: scale(1.15); box-shadow: 0 0 15px rgba(30,144,255,0.4); }
+        .login-input {
+            width: 100%; padding: 14px 18px;
+            border-radius: 14px; border: 2px solid #eee;
+            margin-bottom: 15px; font-size: 16px;
+            font-family: 'Nunito', sans-serif; font-weight: 700;
+            text-align: center; outline: none; transition: border 0.2s;
+        }
+        .login-input:focus { border-color: var(--blue); }
+        .btn-start {
+            width: 100%; padding: 16px;
+            background: linear-gradient(135deg, var(--blue), var(--purple));
+            color: white; border: none; border-radius: 14px;
+            font-size: 18px; font-weight: 900; cursor: pointer;
+            font-family: 'Nunito', sans-serif;
+            box-shadow: 0 8px 20px rgba(30,144,255,0.4);
+            transition: transform 0.1s, box-shadow 0.1s;
+        }
+        .btn-start:hover { transform: translateY(-2px); box-shadow: 0 12px 25px rgba(30,144,255,0.5); }
+        .btn-start:active { transform: translateY(2px); box-shadow: none; }
 
-        /* Wereld */
-        #map { width: 8000px; height: 8000px; background: var(--grass); position: absolute; transition: transform 0.1s linear; }
-        .player { width: 50px; height: 50px; position: absolute; border-radius: 50%; background: var(--p); border: 3px solid white; transform: translate(-50%, -50%); z-index: 100; font-weight: bold; color: white; display: flex; align-items: center; justify-content: center; }
-        .player::after { content: attr(data-name); position: absolute; top: -30px; background: rgba(0,0,0,0.7); padding: 2px 8px; border-radius: 5px; font-size: 12px; white-space: nowrap; }
-        .local { background: var(--b) !important; box-shadow: 0 0 20px rgba(30,144,255,0.6); }
-        .obj { position: absolute; font-size: 55px; transform: translate(-50%, -75%); z-index: 10; pointer-events: none; }
-        
-        #connection-info { position: fixed; bottom: 10px; right: 10px; font-size: 10px; color: white; opacity: 0.5; }
+        /* ========= HUD ========= */
+        #hud {
+            position: fixed; top: 15px; left: 15px; z-index: 500;
+            width: 260px; display: none;
+        }
+        .panel {
+            background: var(--panel);
+            border-radius: 20px;
+            padding: 18px;
+            box-shadow: 0 8px 30px rgba(0,0,0,0.15);
+            margin-bottom: 10px;
+            backdrop-filter: blur(10px);
+        }
+        .money-bar {
+            display: flex; align-items: center; gap: 10px;
+            font-size: 26px; font-weight: 900; color: #222;
+        }
+        .money-icon { font-size: 30px; }
+        #money-display { color: var(--green); transition: all 0.3s; }
+        .money-bump { animation: bump 0.3s cubic-bezier(0.34, 1.56, 0.64, 1); }
+        @keyframes bump { 0%,100% { transform: scale(1); } 50% { transform: scale(1.4); } }
+
+        .btn {
+            width: 100%; padding: 12px;
+            border: none; border-radius: 12px;
+            font-size: 15px; font-weight: 800;
+            cursor: pointer; margin-top: 8px;
+            font-family: 'Nunito', sans-serif;
+            transition: all 0.15s; position: relative;
+        }
+        .btn-work { background: var(--green); color: white; box-shadow: 0 4px 0 #1fa84e; }
+        .btn-work:active { box-shadow: none; transform: translateY(4px); }
+        .btn-work:disabled { opacity: 0.5; cursor: not-allowed; }
+        .btn-bomb { background: var(--red); color: white; box-shadow: 0 4px 0 #c0392b; }
+        .btn-bomb:active { box-shadow: none; transform: translateY(4px); }
+
+        /* Shop grid */
+        .shop-tabs { display: flex; gap: 5px; margin-bottom: 10px; }
+        .shop-tab {
+            flex: 1; padding: 6px; border-radius: 8px;
+            border: 2px solid #ddd; background: white;
+            cursor: pointer; font-size: 12px; font-weight: 700;
+            transition: all 0.15s;
+        }
+        .shop-tab.active { background: var(--blue); color: white; border-color: var(--blue); }
+        .shop-grid {
+            display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px;
+        }
+        .shop-item {
+            background: #f8f9fa; border: 2px solid #eee;
+            border-radius: 10px; cursor: pointer;
+            text-align: center; padding: 8px 4px;
+            font-size: 20px; transition: all 0.15s;
+            position: relative;
+        }
+        .shop-item:hover { transform: scale(1.1); background: white; border-color: var(--blue); }
+        .shop-item:active { transform: scale(0.95); }
+        .shop-item .cost { font-size: 9px; color: #888; font-weight: 700; display: block; }
+        .shop-item.locked { opacity: 0.4; cursor: not-allowed; }
+        .shop-item.locked:hover { transform: none; }
+
+        /* Status */
+        .status-row {
+            display: flex; align-items: center; gap: 6px;
+            font-size: 12px; color: #888; margin-top: 8px;
+        }
+        .dot { width: 8px; height: 8px; border-radius: 50%; background: #ccc; }
+        .dot.online { background: var(--green); box-shadow: 0 0 6px var(--green); animation: pulse 2s infinite; }
+        @keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.4; } }
+
+        /* ========= CHAT ========= */
+        #chat-panel {
+            position: fixed; bottom: 15px; left: 15px;
+            width: 280px; z-index: 500; display: none;
+        }
+        #chat-messages {
+            background: rgba(0,0,0,0.7); border-radius: 14px 14px 0 0;
+            padding: 10px; height: 140px; overflow-y: auto;
+            backdrop-filter: blur(8px);
+        }
+        #chat-messages::-webkit-scrollbar { width: 4px; }
+        #chat-messages::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.2); border-radius: 2px; }
+        .chat-msg { font-size: 13px; color: white; margin-bottom: 4px; line-height: 1.4; }
+        .chat-msg .author { font-weight: 900; }
+        .chat-msg.system { color: #ffd32a; font-style: italic; }
+        #chat-input-row {
+            display: flex; gap: 5px;
+            background: rgba(0,0,0,0.6);
+            border-radius: 0 0 14px 14px;
+            padding: 8px;
+            backdrop-filter: blur(8px);
+        }
+        #chat-input {
+            flex: 1; padding: 8px 12px; border-radius: 10px;
+            border: none; background: rgba(255,255,255,0.15);
+            color: white; font-size: 13px;
+            font-family: 'Nunito', sans-serif; outline: none;
+        }
+        #chat-input::placeholder { color: rgba(255,255,255,0.4); }
+        #chat-send {
+            padding: 8px 14px; border-radius: 10px;
+            background: var(--blue); color: white;
+            border: none; cursor: pointer; font-size: 16px;
+        }
+
+        /* ========= PLAYERS LIST ========= */
+        #players-panel {
+            position: fixed; top: 15px; right: 15px;
+            width: 180px; z-index: 500;
+            display: none;
+        }
+        #players-list { list-style: none; }
+        .player-entry {
+            display: flex; align-items: center; gap: 8px;
+            padding: 6px 0; border-bottom: 1px solid rgba(0,0,0,0.06);
+            font-size: 13px; font-weight: 700;
+        }
+        .player-avatar { font-size: 18px; }
+        .player-name { flex: 1; overflow: hidden; text-overflow: ellipsis; }
+        .player-me { color: var(--blue); }
+
+        /* ========= MINIMAP ========= */
+        #minimap {
+            position: fixed; bottom: 15px; right: 15px;
+            width: 160px; height: 160px;
+            background: rgba(0,0,0,0.7);
+            border-radius: 16px; overflow: hidden;
+            z-index: 500; display: none;
+            border: 2px solid rgba(255,255,255,0.1);
+            backdrop-filter: blur(8px);
+        }
+        #minimap canvas { width: 100%; height: 100%; }
+        .minimap-label {
+            position: absolute; top: 6px; left: 0; right: 0;
+            text-align: center; font-size: 10px; font-weight: 900;
+            color: rgba(255,255,255,0.5); letter-spacing: 1px; text-transform: uppercase;
+        }
+
+        /* ========= WORLD ========= */
+        #world-container {
+            width: 100vw; height: 100vh;
+            overflow: hidden; position: relative;
+        }
+        #map {
+            width: 8000px; height: 8000px;
+            position: absolute;
+            /* Grass pattern */
+            background-color: var(--grass);
+            background-image:
+                radial-gradient(circle at 30% 40%, rgba(255,255,255,0.04) 0%, transparent 50%),
+                radial-gradient(circle at 70% 60%, rgba(0,0,0,0.05) 0%, transparent 50%),
+                repeating-linear-gradient(
+                    45deg,
+                    transparent, transparent 60px,
+                    rgba(0,0,0,0.03) 60px, rgba(0,0,0,0.03) 61px
+                );
+            will-change: transform;
+        }
+
+        /* Roads */
+        .road-h {
+            position: absolute; height: 60px; background: #888;
+            left: 0; right: 0;
+        }
+        .road-v {
+            position: absolute; width: 60px; background: #888;
+            top: 0; bottom: 0;
+        }
+        .road-line-h {
+            position: absolute; height: 4px; background: #ffd32a;
+            left: 0; right: 0; top: 50%; transform: translateY(-50%);
+            background: repeating-linear-gradient(90deg, #ffd32a 0px, #ffd32a 40px, transparent 40px, transparent 80px);
+        }
+        .road-line-v {
+            position: absolute; width: 4px;
+            top: 0; bottom: 0; left: 50%; transform: translateX(-50%);
+            background: repeating-linear-gradient(180deg, #ffd32a 0px, #ffd32a 40px, transparent 40px, transparent 80px);
+        }
+
+        /* Water */
+        .water {
+            position: absolute; background: #4fc3f7;
+            border-radius: 50%;
+            animation: waterShimmer 4s ease-in-out infinite;
+        }
+        @keyframes waterShimmer {
+            0%,100% { filter: brightness(1); }
+            50% { filter: brightness(1.1); }
+        }
+
+        /* Players */
+        .player {
+            width: 52px; height: 52px;
+            position: absolute; border-radius: 50%;
+            border: 3px solid white;
+            transform: translate(-50%, -50%);
+            z-index: 200;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 24px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+            transition: left 0.08s linear, top 0.08s linear;
+        }
+        .player::after {
+            content: attr(data-name);
+            position: absolute; top: -28px;
+            background: rgba(0,0,0,0.75);
+            padding: 3px 10px; border-radius: 20px;
+            font-size: 12px; font-weight: 800;
+            color: white; white-space: nowrap;
+            font-family: 'Nunito', sans-serif;
+        }
+        .player-local {
+            box-shadow: 0 0 0 4px rgba(30,144,255,0.4), 0 4px 12px rgba(0,0,0,0.3);
+            animation: glowPulse 2s infinite;
+        }
+        @keyframes glowPulse {
+            0%,100% { box-shadow: 0 0 0 4px rgba(30,144,255,0.3), 0 4px 12px rgba(0,0,0,0.3); }
+            50% { box-shadow: 0 0 0 8px rgba(30,144,255,0.15), 0 4px 12px rgba(0,0,0,0.3); }
+        }
+
+        /* Objects */
+        .obj {
+            position: absolute;
+            font-size: 46px;
+            transform: translate(-50%, -90%);
+            z-index: 50;
+            cursor: pointer;
+            transition: transform 0.15s;
+            filter: drop-shadow(0 4px 6px rgba(0,0,0,0.3));
+        }
+        .obj:hover { transform: translate(-50%, -100%) scale(1.2); }
+        .obj.new { animation: objDrop 0.4s cubic-bezier(0.34, 1.56, 0.64, 1); }
+        @keyframes objDrop {
+            from { transform: translate(-50%, -200%) scale(0.5); opacity: 0; }
+            to { transform: translate(-50%, -90%) scale(1); opacity: 1; }
+        }
+
+        /* Tooltips on objects */
+        .obj-tooltip {
+            position: absolute; bottom: 100%; left: 50%;
+            transform: translateX(-50%) translateY(-5px);
+            background: rgba(0,0,0,0.8); color: white;
+            font-size: 11px; font-weight: 700;
+            padding: 3px 8px; border-radius: 6px;
+            white-space: nowrap; pointer-events: none;
+            opacity: 0; transition: opacity 0.2s;
+            font-family: 'Nunito', sans-serif;
+        }
+        .obj:hover .obj-tooltip { opacity: 1; }
+
+        /* Chat bubble on player */
+        .chat-bubble {
+            position: absolute; bottom: 58px; left: 50%;
+            transform: translateX(-50%);
+            background: white; border-radius: 12px;
+            padding: 6px 10px; font-size: 12px; font-weight: 700;
+            color: #333; white-space: nowrap; max-width: 150px;
+            overflow: hidden; text-overflow: ellipsis;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.2);
+            animation: bubbleFade 4s forwards;
+        }
+        .chat-bubble::after {
+            content: ''; position: absolute; bottom: -8px; left: 50%;
+            transform: translateX(-50%);
+            border: 4px solid transparent; border-top-color: white;
+        }
+        @keyframes bubbleFade {
+            0%,70% { opacity: 1; transform: translateX(-50%) translateY(0); }
+            100% { opacity: 0; transform: translateX(-50%) translateY(-10px); }
+        }
+
+        /* Notification */
+        #notif {
+            position: fixed; top: 20px; left: 50%; transform: translateX(-50%);
+            z-index: 1000; display: flex; flex-direction: column; gap: 8px;
+            pointer-events: none;
+        }
+        .notif-item {
+            background: rgba(0,0,0,0.85); color: white;
+            padding: 10px 20px; border-radius: 30px;
+            font-size: 14px; font-weight: 800;
+            backdrop-filter: blur(10px);
+            animation: notifAnim 3s forwards;
+            font-family: 'Nunito', sans-serif;
+        }
+        @keyframes notifAnim {
+            0% { opacity: 0; transform: translateY(-20px); }
+            15% { opacity: 1; transform: translateY(0); }
+            75% { opacity: 1; }
+            100% { opacity: 0; transform: translateY(-10px); }
+        }
+
+        /* Work cooldown bar */
+        #work-bar {
+            height: 5px; background: #eee; border-radius: 3px; margin-top: 6px; overflow: hidden;
+        }
+        #work-bar-fill {
+            height: 100%; width: 100%;
+            background: linear-gradient(90deg, var(--green), #26d96c);
+            border-radius: 3px; transition: width 0.1s linear;
+        }
+
+        /* Mobile controls */
+        #mobile-controls {
+            position: fixed; bottom: 20px; right: 20px;
+            display: none; z-index: 500;
+        }
+        .dpad {
+            display: grid;
+            grid-template-columns: 50px 50px 50px;
+            grid-template-rows: 50px 50px 50px;
+            gap: 4px;
+        }
+        .dpad-btn {
+            background: rgba(255,255,255,0.2);
+            border: 2px solid rgba(255,255,255,0.3);
+            border-radius: 12px; color: white;
+            font-size: 22px; cursor: pointer;
+            display: flex; align-items: center; justify-content: center;
+            backdrop-filter: blur(8px);
+            -webkit-tap-highlight-color: transparent;
+            touch-action: none;
+        }
+        .dpad-btn:active { background: rgba(255,255,255,0.4); }
+        .dpad-empty { background: transparent; border: none; pointer-events: none; }
+
+        /* Level badge */
+        #level-badge {
+            background: linear-gradient(135deg, var(--yellow), var(--orange));
+            color: white; border-radius: 12px;
+            padding: 8px 12px; text-align: center; margin-bottom: 0;
+        }
+        .level-title { font-size: 11px; opacity: 0.8; letter-spacing: 1px; text-transform: uppercase; }
+        .level-num { font-size: 22px; font-weight: 900; line-height: 1; }
+        .level-xp-bar { height: 6px; background: rgba(255,255,255,0.3); border-radius: 3px; margin-top: 6px; overflow: hidden; }
+        .level-xp-fill { height: 100%; background: white; border-radius: 3px; transition: width 0.5s; }
+
+        @media (max-width: 768px) {
+            #mobile-controls { display: block; }
+            #hud { width: 200px; }
+            #chat-panel { width: 220px; }
+            #players-panel { display: none !important; }
+        }
     </style>
 </head>
 <body>
 
+<!-- LOGIN -->
 <div id="login">
     <div class="login-card">
-        <h1>PUTSIE WORLD</h1>
-        <input type="text" id="nick" placeholder="Kies je naam..." maxlength="12">
-        <button class="btn" onclick="startPutsie()">STARTEN 🚀</button>
-        <p style="font-size: 11px; color: #777; margin-top: 10px;">Werkt de server niet? Dan speel je automatisch offline!</p>
+        <div class="login-title">PUTSIE WORLD</div>
+        <div class="login-sub">Kies je karakter en spring in de wereld!</div>
+        <div class="avatar-picker" id="avatar-picker">
+            <div class="avatar-opt selected" data-emoji="😎">😎</div>
+            <div class="avatar-opt" data-emoji="🤩">🤩</div>
+            <div class="avatar-opt" data-emoji="🥳">🥳</div>
+            <div class="avatar-opt" data-emoji="🤠">🤠</div>
+            <div class="avatar-opt" data-emoji="🦸">🦸</div>
+            <div class="avatar-opt" data-emoji="🧙">🧙</div>
+            <div class="avatar-opt" data-emoji="🐸">🐸</div>
+            <div class="avatar-opt" data-emoji="🐱">🐱</div>
+        </div>
+        <input class="login-input" type="text" id="nick" placeholder="Jouw naam..." maxlength="14">
+        <button class="btn-start" onclick="startGame()">STARTEN 🚀</button>
+        <p style="font-size: 11px; color: #bbb; margin-top: 15px;">Geen verbinding? Je speelt automatisch offline.</p>
     </div>
 </div>
 
+<!-- NOTIF -->
+<div id="notif"></div>
+
+<!-- HUD -->
 <div id="hud">
-    <div style="font-size: 28px; font-weight: 900;">💰 €<span id="money-display">250</span></div>
-    <button class="btn" onclick="earnMoney()">💼 WERKEN (+€50)</button>
-    <div class="shop" id="shop-ui"></div>
-    <div style="margin-top: 10px; font-size: 10px; text-align: center; color: #aaa;" id="status-text">Status: Offline</div>
+    <div class="panel" id="level-badge">
+        <div class="level-title">Level</div>
+        <div class="level-num">⭐ <span id="level-num">1</span></div>
+        <div class="level-xp-bar"><div class="level-xp-fill" id="xp-fill" style="width:0%"></div></div>
+    </div>
+    <div class="panel" style="margin-top:10px;">
+        <div class="money-bar">
+            <span class="money-icon">💰</span>
+            <span>€<span id="money-display">250</span></span>
+        </div>
+        <div style="font-size:11px;color:#aaa;margin-top:3px;">🏆 Score: <span id="score-display">0</span></div>
+        <button class="btn btn-work" id="work-btn" onclick="earnMoney()">💼 WERKEN (+€50)</button>
+        <div id="work-bar"><div id="work-bar-fill"></div></div>
+    </div>
+    <div class="panel" style="margin-top:0px;">
+        <div class="shop-tabs">
+            <button class="shop-tab active" onclick="setTab('gebouwen', this)">🏠</button>
+            <button class="shop-tab" onclick="setTab('natuur', this)">🌳</button>
+            <button class="shop-tab" onclick="setTab('voertuigen', this)">🚗</button>
+            <button class="shop-tab" onclick="setTab('fun', this)">🎉</button>
+        </div>
+        <div class="shop-grid" id="shop-grid"></div>
+        <button class="btn btn-bomb" onclick="clearArea()" style="margin-top:8px;">💣 Verwijder mijn spullen</button>
+    </div>
+    <div class="panel" style="margin-top:0px; padding:12px 18px;">
+        <div class="status-row">
+            <div class="dot" id="status-dot"></div>
+            <span id="status-text">Verbinden...</span>
+            <span style="margin-left:auto;">👥 <span id="player-count">1</span></span>
+        </div>
+    </div>
 </div>
 
-<div id="map"></div>
-<div id="connection-info">Putsie Engine v4.0 - Build 2026</div>
+<!-- PLAYERS PANEL -->
+<div id="players-panel">
+    <div class="panel">
+        <div style="font-size:13px;font-weight:900;color:#444;margin-bottom:10px;">🌍 Online spelers</div>
+        <ul id="players-list"></ul>
+    </div>
+</div>
+
+<!-- CHAT -->
+<div id="chat-panel">
+    <div id="chat-messages"></div>
+    <div id="chat-input-row">
+        <input id="chat-input" type="text" placeholder="Typ een bericht..." maxlength="80">
+        <button id="chat-send" onclick="sendChat()">➤</button>
+    </div>
+</div>
+
+<!-- MINIMAP -->
+<div id="minimap">
+    <div class="minimap-label">Kaart</div>
+    <canvas id="minimap-canvas" width="160" height="160"></canvas>
+</div>
+
+<!-- WORLD -->
+<div id="world-container">
+    <div id="map"></div>
+</div>
+
+<!-- MOBILE D-PAD -->
+<div id="mobile-controls">
+    <div class="dpad">
+        <div class="dpad-empty"></div>
+        <div class="dpad-btn" id="dpad-up">▲</div>
+        <div class="dpad-empty"></div>
+        <div class="dpad-btn" id="dpad-left">◀</div>
+        <div class="dpad-empty"></div>
+        <div class="dpad-btn" id="dpad-right">▶</div>
+        <div class="dpad-empty"></div>
+        <div class="dpad-btn" id="dpad-down">▼</div>
+        <div class="dpad-empty"></div>
+    </div>
+</div>
 
 <script>
-    // --- SETUP ---
-    const URL = 'https://dvnbmzepheskjvhcydta.supabase.co';
-    const KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImR2bmJtemVwaGVza2p2aGN5ZHRhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzgzMjc1NjcsImV4cCI6MjA5MzkwMzU2N30.OW_8kqcRnDd_i2v1EcSn3IwoWKAsspyLQ3MUOIUD2mY';
+// ===== CONFIG =====
+const SUPABASE_URL = 'https://dvnbmzepheskjvhcydta.supabase.co';
+const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImR2bmJtemVwaGVza2p2aGN5ZHRhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzgzMjc1NjcsImV4cCI6MjA5MzkwMzU2N30.OW_8kqcRnDd_i2v1EcSn3IwoWKAsspyLQ3MUOIUD2mY';
+const MAP_SIZE = 8000;
+const PLAYER_TIMEOUT = 12000; // 12s zonder update = weg
+const SYNC_INTERVAL = 80; // ms
+const WORK_COOLDOWN = 3000; // 3s
+const SAVE_INTERVAL = 5000;
+
+// ===== SHOP ITEMS =====
+const SHOP_ITEMS = {
+    gebouwen: [
+        { emoji: '🏠', cost: 50, name: 'Huis' },
+        { emoji: '🏢', cost: 150, name: 'Kantoor' },
+        { emoji: '🏰', cost: 300, name: 'Kasteel' },
+        { emoji: '🏪', cost: 100, name: 'Winkel' },
+        { emoji: '🏦', cost: 200, name: 'Bank' },
+        { emoji: '🏥', cost: 250, name: 'Ziekenhuis' },
+        { emoji: '🏟️', cost: 500, name: 'Stadion' },
+        { emoji: '⛪', cost: 180, name: 'Kerk' },
+    ],
+    natuur: [
+        { emoji: '🌳', cost: 30, name: 'Boom' },
+        { emoji: '🌴', cost: 40, name: 'Palmboom' },
+        { emoji: '🌸', cost: 25, name: 'Bloesem' },
+        { emoji: '🌻', cost: 20, name: 'Zonnebloem' },
+        { emoji: '🗻', cost: 200, name: 'Berg' },
+        { emoji: '🌊', cost: 80, name: 'Golf' },
+        { emoji: '🌋', cost: 350, name: 'Vulkaan' },
+        { emoji: '🌈', cost: 100, name: 'Regenboog' },
+    ],
+    voertuigen: [
+        { emoji: '🚗', cost: 100, name: 'Auto' },
+        { emoji: '🚌', cost: 150, name: 'Bus' },
+        { emoji: '🚑', cost: 200, name: 'Ambulance' },
+        { emoji: '🚒', cost: 200, name: 'Brandweer' },
+        { emoji: '✈️', cost: 400, name: 'Vliegtuig' },
+        { emoji: '🚁', cost: 350, name: 'Helikopter' },
+        { emoji: '🚂', cost: 300, name: 'Trein' },
+        { emoji: '🛸', cost: 500, name: 'UFO' },
+    ],
+    fun: [
+        { emoji: '🎡', cost: 200, name: 'Reuzenrad' },
+        { emoji: '🎪', cost: 250, name: 'Circus' },
+        { emoji: '🎭', cost: 150, name: 'Theater' },
+        { emoji: '🎮', cost: 80, name: 'Console' },
+        { emoji: '🎵', cost: 60, name: 'Muziek' },
+        { emoji: '💎', cost: 600, name: 'Diamant' },
+        { emoji: '🔥', cost: 70, name: 'Vuur' },
+        { emoji: '⚡', cost: 90, name: 'Bliksem' },
+    ]
+};
+
+// ===== STATE =====
+let sb = null;
+let channel = null;
+let nickname = 'Speler';
+let playerEmoji = '😎';
+let money = 250;
+let score = 0;
+let xp = 0;
+let level = 1;
+let px = 4000, py = 4000, vx = 0, vy = 0;
+let currentTab = 'gebouwen';
+let isOnline = false;
+let playerUID = 'p_' + Math.random().toString(36).substr(2, 8);
+let lastSync = 0;
+let lastWorkTime = 0;
+let workCooldownInterval = null;
+let otherPlayers = {}; // uid -> { el, lastSeen }
+let myObjects = [];
+let allObjects = new Set();
+const keys = {};
+const mobileKeys = {};
+
+// ===== INIT =====
+function startGame() {
+    nickname = document.getElementById('nick').value.trim() || 'Putsie';
     
-    let supabaseClient = null;
-    try { supabaseClient = supabase.createClient(URL, KEY); } catch(e) { console.log("Offline mode"); }
+    // Load saved data
+    loadSave();
 
-    let nickname = "Putsie";
-    let money = 250;
-    let px = 4000, py = 4000, vx = 0, vy = 0;
-    const keys = {};
-    const emojis = ['🏠', '🏢', '🏰', '🌳', '🌴', '🏪', '🚑', '🚨', '🏟️', '🎡', '🚗', '🐶', '🔥', '💎', '🍔', '🍕'];
+    document.getElementById('login').classList.add('hide');
+    setTimeout(() => document.getElementById('login').style.display = 'none', 600);
+    document.getElementById('hud').style.display = 'block';
+    document.getElementById('chat-panel').style.display = 'block';
+    document.getElementById('players-panel').style.display = 'block';
+    document.getElementById('minimap').style.display = 'block';
 
-    // --- GAME START ---
-    function startPutsie() {
-        nickname = document.getElementById('nick').value || "Speler";
-        document.getElementById('login').style.opacity = "0";
-        setTimeout(() => document.getElementById('login').style.display = "none", 500);
-        document.getElementById('hud').style.display = "block";
+    buildWorld();
+    buildShop('gebouwen');
+    connectSupabase();
+    startGameLoop();
+    
+    // Auto-save
+    setInterval(saveGame, SAVE_INTERVAL);
+    
+    // Clean up ghost players
+    setInterval(cleanGhostPlayers, 3000);
 
-        // Shop vullen
-        const shop = document.getElementById('shop-ui');
-        emojis.forEach(e => {
-            let d = document.createElement('div');
-            d.className = 'item'; d.innerText = e;
-            d.onclick = () => placeObject(e);
-            shop.appendChild(d);
-        });
+    // Minimap update
+    setInterval(updateMinimap, 500);
 
-        connect();
-        requestAnimationFrame(gameLoop);
+    // Update players list
+    setInterval(updatePlayersList, 2000);
+
+    notify('👋 Welkom, ' + nickname + '!');
+    updateMoney();
+    updateLevel();
+}
+
+// ===== SAVE / LOAD =====
+function saveGame() {
+    const data = { money, score, xp, level, px, py };
+    localStorage.setItem('putsie_save_' + nickname, JSON.stringify(data));
+}
+
+function loadSave() {
+    const raw = localStorage.getItem('putsie_save_' + nickname);
+    if (raw) {
+        try {
+            const d = JSON.parse(raw);
+            money = d.money || 250;
+            score = d.score || 0;
+            xp = d.xp || 0;
+            level = d.level || 1;
+            px = d.px || 4000;
+            py = d.py || 4000;
+            notify('💾 Opgeslagen voortgang geladen!');
+        } catch(e) {}
     }
+}
 
-    // --- MULTIPLAYER ---
-    let channel = null;
-    function connect() {
-        if(!supabaseClient) return;
-        
-        channel = supabaseClient.channel('putsies_world_main');
-        
-        channel.on('broadcast', { event: 'pos' }, (payload) => {
-            updateOtherPlayer(payload.payload);
-        })
-        .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'putsie_objects' }, (payload) => {
-            renderBuilding(payload.new);
-        })
-        .subscribe((status) => {
-            if(status === 'SUBSCRIBED') {
-                document.getElementById('status-text').innerText = "Status: 🟢 ONLINE";
-                loadBuildings();
-            }
-        });
+// ===== WORLD BUILD =====
+function buildWorld() {
+    const map = document.getElementById('map');
+
+    // Roads (horizontal)
+    [1500, 3000, 4500, 6000].forEach(y => {
+        const r = document.createElement('div');
+        r.className = 'road-h';
+        r.style.top = y + 'px';
+        const line = document.createElement('div');
+        line.className = 'road-line-h';
+        r.appendChild(line);
+        map.appendChild(r);
+    });
+
+    // Roads (vertical)
+    [1500, 3000, 4500, 6000].forEach(x => {
+        const r = document.createElement('div');
+        r.className = 'road-v';
+        r.style.left = x + 'px';
+        const line = document.createElement('div');
+        line.className = 'road-line-v';
+        r.appendChild(line);
+        map.appendChild(r);
+    });
+
+    // Water/lakes
+    const lakes = [
+        { x: 800, y: 800, w: 300, h: 200 },
+        { x: 5500, y: 2000, w: 400, h: 300 },
+        { x: 2000, y: 5500, w: 350, h: 250 },
+        { x: 6500, y: 6000, w: 500, h: 350 },
+    ];
+    lakes.forEach(l => {
+        const w = document.createElement('div');
+        w.className = 'water';
+        w.style.left = l.x + 'px';
+        w.style.top = l.y + 'px';
+        w.style.width = l.w + 'px';
+        w.style.height = l.h + 'px';
+        map.appendChild(w);
+    });
+
+    // Some default decorations
+    const deco = [
+        { e: '🌳', x: 200, y: 200 }, { e: '🌳', x: 350, y: 180 },
+        { e: '🏰', x: 4000, y: 2000 }, { e: '⛲', x: 3980, y: 2100 },
+        { e: '🌴', x: 7000, y: 1000 }, { e: '🌴', x: 7100, y: 1200 },
+        { e: '🗻', x: 500, y: 6000 }, { e: '🗻', x: 700, y: 5800 },
+        { e: '🌊', x: 6800, y: 3500 },
+    ];
+    deco.forEach(d => renderObject({ id: 'deco_' + d.x + '_' + d.y, type: d.e, x: d.x, y: d.y }, false));
+}
+
+// ===== SHOP =====
+function buildShop(tab) {
+    const grid = document.getElementById('shop-grid');
+    grid.innerHTML = '';
+    SHOP_ITEMS[tab].forEach(item => {
+        const d = document.createElement('div');
+        d.className = 'shop-item';
+        d.innerHTML = `${item.emoji}<span class="cost">€${item.cost}</span>`;
+        d.title = item.name;
+        d.onclick = () => placeObject(item);
+        d.setAttribute('data-cost', item.cost);
+        grid.appendChild(d);
+    });
+    updateShopLocks();
+}
+
+function setTab(tab, btn) {
+    currentTab = tab;
+    document.querySelectorAll('.shop-tab').forEach(t => t.classList.remove('active'));
+    btn.classList.add('active');
+    buildShop(tab);
+}
+
+function updateShopLocks() {
+    document.querySelectorAll('.shop-item').forEach(el => {
+        const cost = parseInt(el.getAttribute('data-cost'));
+        if (cost > money) el.classList.add('locked');
+        else el.classList.remove('locked');
+    });
+}
+
+// ===== MONEY & LEVEL =====
+function updateMoney() {
+    const el = document.getElementById('money-display');
+    el.textContent = money;
+    el.parentElement.classList.remove('money-bump');
+    void el.parentElement.offsetWidth;
+    el.parentElement.classList.add('money-bump');
+    document.getElementById('score-display').textContent = score;
+    updateShopLocks();
+}
+
+function addXP(amount) {
+    xp += amount;
+    const xpNeeded = level * 200;
+    if (xp >= xpNeeded) {
+        xp -= xpNeeded;
+        level++;
+        notify('⭐ Level UP! Je bent nu level ' + level);
     }
+    updateLevel();
+}
 
-    async function loadBuildings() {
-        const { data } = await supabaseClient.from('putsie_objects').select('*');
-        if(data) data.forEach(renderBuilding);
-    }
+function updateLevel() {
+    document.getElementById('level-num').textContent = level;
+    const xpNeeded = level * 200;
+    document.getElementById('xp-fill').style.width = ((xp / xpNeeded) * 100) + '%';
+}
 
-    function updateOtherPlayer(data) {
-        let p = document.getElementById('p-' + data.id);
-        if(!p) {
-            p = document.createElement('div');
-            p.id = 'p-' + data.id; p.className = 'player';
-            p.setAttribute('data-name', data.id);
-            document.getElementById('map').appendChild(p);
+function earnMoney() {
+    const now = Date.now();
+    if (now - lastWorkTime < WORK_COOLDOWN) return;
+    lastWorkTime = now;
+
+    const earn = 50 + (level - 1) * 10;
+    money += earn;
+    score += earn;
+    addXP(10);
+    notify(`💼 +€${earn} verdiend!`);
+    updateMoney();
+
+    // Cooldown bar
+    const btn = document.getElementById('work-btn');
+    btn.disabled = true;
+    const fill = document.getElementById('work-bar-fill');
+    fill.style.width = '100%';
+
+    if (workCooldownInterval) clearInterval(workCooldownInterval);
+    workCooldownInterval = setInterval(() => {
+        const elapsed = Date.now() - lastWorkTime;
+        const pct = Math.max(0, 100 - (elapsed / WORK_COOLDOWN) * 100);
+        fill.style.width = pct + '%';
+        if (elapsed >= WORK_COOLDOWN) {
+            clearInterval(workCooldownInterval);
+            btn.disabled = false;
+            fill.style.width = '100%';
         }
-        p.style.left = data.x + 'px'; p.style.top = data.y + 'px';
+    }, 50);
+
+    // Sync money if online
+    if (channel) {
+        channel.send({ type: 'broadcast', event: 'action', payload: { id: playerUID, action: 'work', name: nickname } });
     }
+}
 
-    // --- ENGINE ---
-    window.addEventListener('keydown', e => keys[e.code] = true);
-    window.addEventListener('keyup', e => keys[e.code] = false);
+// ===== PLACE OBJECTS =====
+async function placeObject(item) {
+    if (money < item.cost) {
+        notify('❌ Niet genoeg geld! (€' + item.cost + ' nodig)');
+        return;
+    }
+    money -= item.cost;
+    score += Math.floor(item.cost / 2);
+    addXP(item.cost / 10);
+    updateMoney();
 
-    function gameLoop() {
-        if(keys['KeyW'] || keys['ArrowUp']) vy -= 1.2;
-        if(keys['KeyS'] || keys['ArrowDown']) vy += 1.2;
-        if(keys['KeyA'] || keys['ArrowLeft']) vx -= 1.2;
-        if(keys['KeyD'] || keys['ArrowRight']) vx += 1.2;
+    const id = 'obj_' + Date.now() + '_' + Math.random().toString(36).substr(2,5);
+    const obj = { id, type: item.emoji, x: px + (Math.random() - 0.5) * 80, y: py + 40, owner: nickname };
+    renderObject(obj, true);
+    myObjects.push(id);
 
-        vx *= 0.88; vy *= 0.88;
-        px += vx; py += vy;
+    if (sb) {
+        try {
+            await sb.from('putsie_objects').insert([{
+                id, type: item.emoji, x: Math.round(obj.x), y: Math.round(obj.y), owner: nickname
+            }]);
+        } catch(e) {}
+    }
+}
 
-        // Boundaries
-        px = Math.max(50, Math.min(7950, px));
-        py = Math.max(50, Math.min(7950, py));
+function renderObject(data, isNew = false) {
+    if (allObjects.has(data.id)) return;
+    allObjects.add(data.id);
 
-        // Update Self
+    const el = document.createElement('div');
+    el.id = 'obj_' + data.id;
+    el.className = 'obj' + (isNew ? ' new' : '');
+    el.innerHTML = `${data.type}<div class="obj-tooltip">${data.owner || ''}</div>`;
+    el.style.left = data.x + 'px';
+    el.style.top = data.y + 'px';
+    document.getElementById('map').appendChild(el);
+}
+
+async function clearArea() {
+    if (myObjects.length === 0) { notify('Geen spullen om te verwijderen!'); return; }
+    myObjects.forEach(id => {
+        const el = document.getElementById('obj_' + id);
+        if (el) el.remove();
+        allObjects.delete(id);
+    });
+    const ids = [...myObjects];
+    myObjects = [];
+    if (sb) {
+        try { await sb.from('putsie_objects').delete().in('id', ids); } catch(e) {}
+    }
+    notify('💣 Spullen verwijderd!');
+}
+
+// ===== SUPABASE =====
+async function connectSupabase() {
+    try {
+        sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+        
+        channel = sb.channel('putsie_world_v4', {
+            config: { broadcast: { self: false } }
+        });
+
+        channel
+            .on('broadcast', { event: 'pos' }, ({ payload }) => {
+                handlePlayerUpdate(payload);
+            })
+            .on('broadcast', { event: 'chat' }, ({ payload }) => {
+                handleChatMessage(payload);
+            })
+            .on('broadcast', { event: 'action' }, ({ payload }) => {
+                if (payload.action === 'work') {
+                    addChatMessage({ name: payload.name, msg: '💼 werkt!', system: true });
+                }
+            })
+            .on('postgres_changes', {
+                event: 'INSERT', schema: 'public', table: 'putsie_objects'
+            }, ({ new: row }) => {
+                renderObject(row);
+            })
+            .subscribe(status => {
+                if (status === 'SUBSCRIBED') {
+                    setOnline(true);
+                    loadBuildings();
+                    announceJoin();
+                } else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
+                    setOnline(false);
+                }
+            });
+
+    } catch(e) {
+        setOnline(false);
+        console.warn('Supabase error:', e);
+    }
+}
+
+function setOnline(online) {
+    isOnline = online;
+    const dot = document.getElementById('status-dot');
+    const txt = document.getElementById('status-text');
+    if (online) {
+        dot.classList.add('online');
+        txt.textContent = 'Online ✓';
+    } else {
+        dot.classList.remove('online');
+        txt.textContent = 'Offline mode';
+    }
+}
+
+async function loadBuildings() {
+    try {
+        const { data, error } = await sb.from('putsie_objects').select('*').limit(500);
+        if (data) data.forEach(row => renderObject(row));
+    } catch(e) {}
+}
+
+function announceJoin() {
+    if (channel) {
+        channel.send({ type: 'broadcast', event: 'chat', payload: {
+            id: playerUID, name: '🌍 Systeem',
+            msg: nickname + ' (' + playerEmoji + ') is de wereld binnengekomen!',
+            system: true
+        }});
+    }
+}
+
+// ===== MULTIPLAYER PLAYERS =====
+function handlePlayerUpdate(data) {
+    if (data.id === playerUID) return;
+
+    let info = otherPlayers[data.id];
+    if (!info) {
+        const el = createPlayerEl(data);
+        info = { el, lastSeen: Date.now() };
+        otherPlayers[data.id] = info;
+        addChatMessage({ name: '🌍', msg: data.name + ' is erbij!', system: true });
+    }
+    info.lastSeen = Date.now();
+    info.el.style.left = data.x + 'px';
+    info.el.style.top = data.y + 'px';
+    info.el.setAttribute('data-name', data.name);
+    info.name = data.name;
+    info.emoji = data.emoji;
+    document.getElementById('player-count').textContent = Object.keys(otherPlayers).length + 1;
+}
+
+function createPlayerEl(data) {
+    const el = document.createElement('div');
+    el.className = 'player';
+    el.setAttribute('data-name', data.name);
+    el.textContent = data.emoji || '😎';
+    el.style.background = randomColor(data.id);
+    document.getElementById('map').appendChild(el);
+    return el;
+}
+
+function randomColor(seed) {
+    const colors = ['#ff4757','#2ed573','#a55eea','#ff6b35','#ffd32a','#26de81','#fd79a8'];
+    let hash = 0;
+    for (let c of seed) hash = (hash * 31 + c.charCodeAt(0)) & 0xffffff;
+    return colors[Math.abs(hash) % colors.length];
+}
+
+function cleanGhostPlayers() {
+    const now = Date.now();
+    Object.entries(otherPlayers).forEach(([id, info]) => {
+        if (now - info.lastSeen > PLAYER_TIMEOUT) {
+            info.el.remove();
+            delete otherPlayers[id];
+            document.getElementById('player-count').textContent = Object.keys(otherPlayers).length + 1;
+        }
+    });
+}
+
+function updatePlayersList() {
+    const list = document.getElementById('players-list');
+    list.innerHTML = `<li class="player-entry"><span class="player-avatar">${playerEmoji}</span><span class="player-name player-me">${nickname} (jij)</span></li>`;
+    Object.values(otherPlayers).forEach(p => {
+        const li = document.createElement('li');
+        li.className = 'player-entry';
+        li.innerHTML = `<span class="player-avatar">${p.emoji || '😎'}</span><span class="player-name">${p.name || '?'}</span>`;
+        list.appendChild(li);
+    });
+}
+
+// ===== CHAT =====
+function sendChat() {
+    const input = document.getElementById('chat-input');
+    const msg = input.value.trim();
+    if (!msg) return;
+    input.value = '';
+
+    addChatMessage({ name: nickname, msg, system: false });
+    showChatBubble('me', msg);
+
+    if (channel) {
+        channel.send({ type: 'broadcast', event: 'chat', payload: {
+            id: playerUID, name: nickname, msg, system: false
+        }});
+    }
+}
+
+function handleChatMessage(data) {
+    if (data.id === playerUID) return;
+    addChatMessage(data);
+
+    // Show bubble on player
+    const pInfo = otherPlayers[data.id];
+    if (pInfo) showChatBubble(pInfo.el, data.msg);
+}
+
+function addChatMessage({ name, msg, system }) {
+    const box = document.getElementById('chat-messages');
+    const d = document.createElement('div');
+    d.className = 'chat-msg' + (system ? ' system' : '');
+    if (system) {
+        d.textContent = msg;
+    } else {
+        d.innerHTML = `<span class="author" style="color:#${intToHex(name)}">${escHtml(name)}:</span> ${escHtml(msg)}`;
+    }
+    box.appendChild(d);
+    // Keep max 50 messages
+    while (box.children.length > 50) box.removeChild(box.firstChild);
+    box.scrollTop = box.scrollHeight;
+}
+
+function showChatBubble(target, msg) {
+    const player = target === 'me' ? document.getElementById('me') : target;
+    if (!player) return;
+    // Remove existing
+    const existing = player.querySelector('.chat-bubble');
+    if (existing) existing.remove();
+    const bubble = document.createElement('div');
+    bubble.className = 'chat-bubble';
+    bubble.textContent = msg.length > 30 ? msg.substr(0, 30) + '...' : msg;
+    player.appendChild(bubble);
+    setTimeout(() => bubble.remove(), 4000);
+}
+
+function escHtml(s) {
+    return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+function intToHex(str) {
+    let h = 5381;
+    for (let c of str) h = ((h << 5) + h) + c.charCodeAt(0);
+    return (Math.abs(h) % 0xffffff).toString(16).padStart(6, '0');
+}
+
+// Enter to chat
+document.getElementById('chat-input').addEventListener('keydown', e => {
+    if (e.key === 'Enter') sendChat();
+    e.stopPropagation(); // don't trigger movement
+});
+
+// ===== GAME LOOP =====
+function startGameLoop() {
+    let lastFrame = 0;
+
+    function loop(ts) {
+        const dt = Math.min((ts - lastFrame) / 16.67, 3); // deltatime, capped at 3x
+        lastFrame = ts;
+
+        // Input
+        const up    = keys['KeyW'] || keys['ArrowUp']    || mobileKeys.up;
+        const down  = keys['KeyS'] || keys['ArrowDown']  || mobileKeys.down;
+        const left  = keys['KeyA'] || keys['ArrowLeft']  || mobileKeys.left;
+        const right = keys['KeyD'] || keys['ArrowRight'] || mobileKeys.right;
+
+        const speed = 1.4 * dt;
+        if (up)    vy -= speed;
+        if (down)  vy += speed;
+        if (left)  vx -= speed;
+        if (right) vx += speed;
+
+        // Diagonal normalization
+        if ((up || down) && (left || right)) {
+            vx *= 0.707;
+            vy *= 0.707;
+        }
+
+        vx *= Math.pow(0.85, dt);
+        vy *= Math.pow(0.85, dt);
+
+        // Clamp velocity
+        const maxV = 18;
+        const spd = Math.sqrt(vx*vx + vy*vy);
+        if (spd > maxV) { vx = vx/spd*maxV; vy = vy/spd*maxV; }
+
+        px += vx;
+        py += vy;
+        px = Math.max(50, Math.min(MAP_SIZE - 50, px));
+        py = Math.max(50, Math.min(MAP_SIZE - 50, py));
+
+        // Render local player
         let me = document.getElementById('me');
-        if(!me) {
+        if (!me) {
             me = document.createElement('div');
-            me.id = 'me'; me.className = 'player local';
+            me.id = 'me';
+            me.className = 'player player-local';
             me.setAttribute('data-name', nickname);
+            me.textContent = playerEmoji;
             document.getElementById('map').appendChild(me);
         }
-        me.style.left = px + 'px'; me.style.top = py + 'px';
+        me.style.left = Math.round(px) + 'px';
+        me.style.top = Math.round(py) + 'px';
 
-        // Camera
-        document.getElementById('map').style.transform = `translate(${window.innerWidth/2 - px}px, ${window.innerHeight/2 - py}px)`;
+        // Camera (pixel-rounded to avoid jitter)
+        const camX = Math.round(window.innerWidth / 2 - px);
+        const camY = Math.round(window.innerHeight / 2 - py);
+        document.getElementById('map').style.transform = `translate(${camX}px, ${camY}px)`;
 
-        // Sync
-        if(channel && (Math.abs(vx) > 0.1 || Math.abs(vy) > 0.1)) {
-            channel.send({ type: 'broadcast', event: 'pos', payload: { id: nickname, x: px, y: py }});
+        // Sync position
+        const now = Date.now();
+        if (channel && (now - lastSync > SYNC_INTERVAL)) {
+            lastSync = now;
+            channel.send({ type: 'broadcast', event: 'pos', payload: {
+                id: playerUID, name: nickname, emoji: playerEmoji,
+                x: Math.round(px), y: Math.round(py)
+            }});
         }
 
-        requestAnimationFrame(gameLoop);
+        requestAnimationFrame(loop);
     }
+    requestAnimationFrame(loop);
+}
 
-    function earnMoney() {
-        money += 50;
-        document.getElementById('money-display').innerText = money;
-    }
+// ===== MINIMAP =====
+function updateMinimap() {
+    const canvas = document.getElementById('minimap-canvas');
+    const ctx = canvas.getContext('2d');
+    const w = canvas.width, h = canvas.height;
+    const scale = w / MAP_SIZE;
 
-    async function placeObject(type) {
-        if(money < 50) return;
-        money -= 50;
-        document.getElementById('money-display').innerText = money;
+    ctx.clearRect(0, 0, w, h);
 
-        const obj = { id: 'temp-' + Date.now(), type, x: px, y: py };
-        renderBuilding(obj);
+    // Background
+    ctx.fillStyle = '#4caf70';
+    ctx.fillRect(0, 0, w, h);
 
-        if(supabaseClient) {
-            await supabaseClient.from('putsie_objects').insert([{ type, x: px, y: py, owner: nickname }]);
-        }
-    }
+    // Roads
+    ctx.fillStyle = '#888';
+    [1500, 3000, 4500, 6000].forEach(y => {
+        ctx.fillRect(0, y * scale, w, 60 * scale);
+        ctx.fillRect(y * scale, 0, 60 * scale, h);
+    });
 
-    function renderBuilding(data) {
-        if(document.getElementById(data.id)) return;
-        const b = document.createElement('div');
-        b.id = data.id; b.className = 'obj';
-        b.innerText = data.type;
-        b.style.left = data.x + 'px'; b.style.top = data.y + 'px';
-        document.getElementById('map').appendChild(b);
-    }
+    // Objects (dots)
+    ctx.fillStyle = 'rgba(255,255,255,0.5)';
+    allObjects.forEach(id => {
+        const el = document.getElementById('obj_' + id);
+        if (!el) return;
+        const x = parseFloat(el.style.left) * scale;
+        const y = parseFloat(el.style.top) * scale;
+        ctx.fillRect(x - 1, y - 1, 3, 3);
+    });
+
+    // Other players
+    Object.values(otherPlayers).forEach(p => {
+        const x = parseFloat(p.el.style.left) * scale;
+        const y = parseFloat(p.el.style.top) * scale;
+        ctx.fillStyle = '#ff4757';
+        ctx.beginPath();
+        ctx.arc(x, y, 3, 0, Math.PI * 2);
+        ctx.fill();
+    });
+
+    // Local player
+    ctx.fillStyle = '#1e90ff';
+    ctx.beginPath();
+    ctx.arc(px * scale, py * scale, 4, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.strokeStyle = 'white';
+    ctx.lineWidth = 1.5;
+    ctx.stroke();
+}
+
+// ===== NOTIFICATIONS =====
+function notify(msg) {
+    const box = document.getElementById('notif');
+    const el = document.createElement('div');
+    el.className = 'notif-item';
+    el.textContent = msg;
+    box.appendChild(el);
+    setTimeout(() => el.remove(), 3100);
+}
+
+// ===== KEYBOARD =====
+window.addEventListener('keydown', e => {
+    keys[e.code] = true;
+    // Don't intercept chat input
+    if (document.activeElement === document.getElementById('chat-input')) return;
+    if (e.code === 'KeyE') earnMoney();
+});
+window.addEventListener('keyup', e => keys[e.code] = false);
+
+// ===== AVATAR PICKER =====
+document.querySelectorAll('.avatar-opt').forEach(opt => {
+    opt.addEventListener('click', () => {
+        document.querySelectorAll('.avatar-opt').forEach(o => o.classList.remove('selected'));
+        opt.classList.add('selected');
+        playerEmoji = opt.getAttribute('data-emoji');
+    });
+});
+
+// ===== MOBILE D-PAD =====
+function setupDpad() {
+    const map = { 'dpad-up': 'up', 'dpad-down': 'down', 'dpad-left': 'left', 'dpad-right': 'right' };
+    Object.entries(map).forEach(([id, dir]) => {
+        const el = document.getElementById(id);
+        el.addEventListener('touchstart', e => { e.preventDefault(); mobileKeys[dir] = true; });
+        el.addEventListener('touchend', e => { e.preventDefault(); mobileKeys[dir] = false; });
+        el.addEventListener('mousedown', () => mobileKeys[dir] = true);
+        el.addEventListener('mouseup', () => mobileKeys[dir] = false);
+    });
+}
+setupDpad();
+
+// Prevent right-click on map
+document.getElementById('map')?.addEventListener('contextmenu', e => e.preventDefault());
 </script>
 </body>
 </html>
