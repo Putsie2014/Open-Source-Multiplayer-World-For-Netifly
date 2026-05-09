@@ -2,65 +2,104 @@
 <html lang="nl">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Onze Life Simulator</title>
+    <title>Multiplayer Life Sim</title>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
-        body { margin: 0; overflow: hidden; font-family: sans-serif; background: #2ecc71; }
-        #ui { position: absolute; top: 10px; left: 10px; background: rgba(255,255,255,0.8); padding: 15px; border-radius: 8px; }
-        #player { 
-            width: 50px; height: 50px; 
-            background: #e74c3c; position: absolute; 
-            border-radius: 50%; transition: 0.1s;
-            display: flex; align-items: center; justify-content: center; color: white; font-weight: bold;
+        body { margin: 0; overflow: hidden; background: #27ae60; font-family: 'Segoe UI', sans-serif; }
+        #game-world { width: 100vw; height: 100vh; position: relative; }
+        
+        .player { 
+            width: 40px; height: 40px; 
+            position: absolute; 
+            background: #e74c3c; 
+            border-radius: 50%; 
+            display: flex; align-items: center; justify-content: center;
+            color: white; font-size: 10px; font-weight: bold;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.2);
+            transition: left 0.1s linear, top 0.1s linear; /* Voor smooth netwerk beweging */
         }
-        button { cursor: pointer; padding: 10px; background: #3498db; color: white; border: none; border-radius: 5px; }
-        button:hover { background: #2980b9; }
+
+        .local-player { background: #3498db; border: 3px solid white; z-index: 10; }
+
+        #ui { 
+            position: fixed; top: 20px; left: 20px; 
+            background: white; padding: 20px; border-radius: 12px; 
+            box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+        }
+        button { 
+            background: #2ecc71; border: none; padding: 10px 20px; 
+            color: white; border-radius: 5px; cursor: pointer; font-weight: bold;
+        }
+        button:active { transform: scale(0.95); }
     </style>
 </head>
 <body>
 
-    <div id="ui">
-        <h2>💰 Portemonnee: €<span id="money">0</span></h2>
-        <button onclick="work()">Werken (Klik!)</button>
-        <p>Gebruik <b>pijltjestoetsen</b> om te lopen.</p>
-    </div>
+<div id="ui">
+    <h2 style="margin:0">💰 €<span id="money">0</span></h2>
+    <p>Beweeg met <b>WASD</b> of <b>Pijltjes</b></p>
+    <button onclick="work()">WERKEN</button>
+</div>
 
-    <div id="player">JIJ</div>
+<div id="game-world"></div>
 
-    <script>
-        let money = 0;
-        let posX = window.innerWidth / 2;
-        let posY = window.innerHeight / 2;
-        const speed = 15;
+<script>
+    // --- CONFIGURATIE ---
+    // Maak een gratis account op supabase.com voor je eigen keys
+    const SUPABASE_URL = 'JOUW_SUPABASE_URL';
+    const SUPABASE_KEY = 'JOUW_SUPABASE_ANON_KEY';
+    // const supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
-        const player = document.getElementById('player');
-        const moneyDisplay = document.getElementById('money');
+    const world = document.getElementById('game-world');
+    const moneyDisplay = document.getElementById('money');
+    
+    let myId = "player_" + Math.floor(Math.random() * 10000);
+    let money = 0;
+    let pos = { x: 500, y: 300 };
+    let keys = {};
 
-        // Functie om te werken
-        function work() {
-            money += 10;
-            moneyDisplay.innerText = money;
-            // Kleine animatie
-            player.style.transform = "scale(1.2)";
-            setTimeout(() => player.style.transform = "scale(1)", 100);
+    // --- SMOOTH MOVEMENT ENGINE ---
+    window.addEventListener('keydown', e => keys[e.code] = true);
+    window.addEventListener('keyup', e => keys[e.code] = false);
+
+    function gameLoop() {
+        let moved = false;
+        const speed = 5;
+
+        if (keys['ArrowUp'] || keys['KeyW']) { pos.y -= speed; moved = true; }
+        if (keys['ArrowDown'] || keys['KeyS']) { pos.y += speed; moved = true; }
+        if (keys['ArrowLeft'] || keys['KeyA']) { pos.x -= speed; moved = true; }
+        if (keys['ArrowRight'] || keys['KeyD']) { pos.x += speed; moved = true; }
+
+        if (moved) {
+            updateLocalPlayer();
+            // Hier zou de code komen om naar de server te sturen:
+            // broadcastPos(myId, pos); 
         }
+        requestAnimationFrame(gameLoop);
+    }
 
-        // Beweging
-        window.addEventListener('keydown', (e) => {
-            if (e.key === 'ArrowUp') posY -= speed;
-            if (e.key === 'ArrowDown') posY += speed;
-            if (e.key === 'ArrowLeft') posX -= speed;
-            if (e.key === 'ArrowRight') posX += speed;
-
-            updatePosition();
-        });
-
-        function updatePosition() {
-            player.style.left = posX + 'px';
-            player.style.top = posY + 'px';
+    function updateLocalPlayer() {
+        let me = document.getElementById(myId);
+        if (!me) {
+            me = document.createElement('div');
+            me.id = myId;
+            me.className = 'player local-player';
+            me.innerText = "JIJ";
+            world.appendChild(me);
         }
+        me.style.left = pos.x + 'px';
+        me.style.top = pos.y + 'px';
+    }
 
-        updatePosition();
-    </script>
+    function work() {
+        money += 10;
+        moneyDisplay.innerText = money;
+    }
+
+    // Start de game
+    gameLoop();
+</script>
+
 </body>
 </html>
