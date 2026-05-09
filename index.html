@@ -2,232 +2,159 @@
 <html lang="nl">
 <head>
     <meta charset="UTF-8">
-    <title>Life Sim - Fail Safe Editie</title>
+    <title>Multiplayer City Builder</title>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
-        :root { --p: #3498db; --s: #2ecc71; --g: #78e08f; --house: #f5f6fa; --wall: #dcdde1; }
-        body, html { margin: 0; padding: 0; width: 100%; height: 100%; overflow: hidden; background: #1a1a1a; font-family: 'Segoe UI', sans-serif; user-select: none; }
+        :root { --p: #3498db; --s: #2ecc71; --g: #78e08f; --dark: #2c3e50; }
+        body, html { margin: 0; padding: 0; width: 100%; height: 100%; overflow: hidden; background: #1a1a1a; font-family: 'Inter', sans-serif; }
         
-        #viewport { width: 100vw; height: 100vh; position: relative; overflow: hidden; }
+        /* Login Scherm */
+        #login-overlay { position: fixed; inset: 0; background: var(--dark); z-index: 1000; display: flex; align-items: center; justify-content: center; color: white; }
+        .login-box { background: white; padding: 40px; border-radius: 20px; color: var(--dark); text-align: center; width: 300px; }
         
-        /* Giga Map met duidelijk raster */
-        #map { 
-            width: 5000px; height: 5000px; background-color: var(--g);
-            background-image: 
-                linear-gradient(rgba(255,255,255,0.2) 2px, transparent 2px),
-                linear-gradient(90deg, rgba(255,255,255,0.2) 2px, transparent 2px);
-            background-size: 100px 100px; position: absolute; top: 0; left: 0;
-            will-change: transform;
-        }
-
-        /* Huis */
-        .house {
-            position: absolute; width: 800px; height: 500px; 
-            background: var(--house); border: 20px solid var(--wall);
-            left: 2100px; top: 2200px; border-radius: 10px;
-            box-shadow: inset 0 0 30px rgba(0,0,0,0.05), 0 30px 60px rgba(0,0,0,0.3);
-        }
-        .door { position: absolute; width: 150px; height: 20px; background: #e1b12c; bottom: -20px; left: 325px; }
-
-        /* Spelers */
-        .player { 
-            width: 50px; height: 50px; position: absolute; border-radius: 50%; background: #e74c3c;
-            display: flex; align-items: center; justify-content: center; color: white; font-weight: bold; font-size: 11px;
-            box-shadow: 0 10px 20px rgba(0,0,0,0.3); z-index: 50; 
-            margin-top: -25px; margin-left: -25px; /* Centreer perfect op coördinaten */
-        }
-        .local-player { background: var(--p); border: 4px solid white; z-index: 60; }
-
-        /* Meubels */
-        .furniture {
-            position: absolute; font-size: 40px; z-index: 20;
-            margin-top: -40px; margin-left: -20px; /* Centreer emoji op de grond */
-            filter: drop-shadow(0 10px 5px rgba(0,0,0,0.3));
-        }
-
+        /* Wereld */
+        #map { width: 5000px; height: 5000px; background: var(--g); position: absolute; top: 0; left: 0; 
+               background-image: repeating-linear-gradient(0deg, rgba(0,0,0,0.05) 0px, rgba(0,0,0,0.05) 1px, transparent 1px, transparent 100px),
+                                 repeating-linear-gradient(90deg, rgba(0,0,0,0.05) 0px, rgba(0,0,0,0.05) 1px, transparent 1px, transparent 100px); }
+        
+        /* Objecten & Spelers */
+        .player { width: 45px; height: 45px; position: absolute; border-radius: 50%; background: #e74c3c; z-index: 100; display: flex; align-items: center; justify-content: center; color: white; font-size: 10px; font-weight: bold; transform: translate(-50%, -50%); border: 3px solid rgba(0,0,0,0.2); }
+        .local { background: var(--p) !important; border-color: white !important; }
+        .building { position: absolute; font-size: 60px; transform: translate(-50%, -50%); z-index: 10; filter: drop-shadow(0 10px 10px rgba(0,0,0,0.2)); }
+        
         /* UI */
-        #ui { 
-            position: fixed; top: 20px; left: 20px; z-index: 100; background: rgba(255,255,255,0.95); 
-            padding: 20px; border-radius: 16px; box-shadow: 0 10px 30px rgba(0,0,0,0.2); width: 220px;
-        }
-        .btn { background: var(--s); color: white; border: none; padding: 15px; border-radius: 8px; width: 100%; cursor: pointer; font-weight: bold; margin-top: 10px; transition: 0.2s;}
-        .btn:hover { filter: brightness(1.1); transform: translateY(-2px); }
-        .btn:active { transform: translateY(0); }
-        .btn-shop { background: #9b59b6; }
-        
-        #status { font-size: 12px; margin-top: 15px; color: #f39c12; font-weight: bold; text-align: center; padding: 5px; border-radius: 5px; background: #fdf2e9;}
-        .online { color: #27ae60 !important; background: #e9f7ef !important; }
-        .offline { color: #e74c3c !important; background: #fdedec !important; }
+        #hud { position: fixed; top: 20px; left: 20px; z-index: 500; background: white; padding: 20px; border-radius: 15px; box-shadow: 0 10px 25px rgba(0,0,0,0.2); width: 250px; }
+        .btn { background: var(--s); color: white; border: none; padding: 12px; border-radius: 8px; width: 100%; cursor: pointer; font-weight: bold; margin-bottom: 8px; }
+        .shop-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 5px; }
+        .shop-item { font-size: 12px; padding: 8px; background: #f1f2f6; border-radius: 5px; border: none; cursor: pointer; }
+        .shop-item:hover { background: #dfe4ea; }
     </style>
 </head>
 <body>
 
-<div id="ui">
-    <div style="font-size: 32px; font-weight: 900; color: #2c3e50;">💰 €<span id="money">100</span></div>
-    <button class="btn" onclick="work()">💼 WERKEN (+€20)</button>
-    
-    <div style="margin-top: 20px; padding-top: 15px; border-top: 2px solid #ecf0f1;">
-        <p style="margin:0 0 10px 0; font-size: 13px; font-weight: bold; color: #7f8c8d;">Winkel (Plaats in wereld):</p>
-        <button class="btn btn-shop" onclick="buyItem('🪑', 50)">Koop Stoel (€50)</button>
-        <button class="btn btn-shop" onclick="buyItem('🪴', 30)">Koop Plant (€30)</button>
-        <button class="btn btn-shop" onclick="buyItem('📺', 150)">Koop TV (€150)</button>
+<div id="login-overlay">
+    <div class="login-box">
+        <h2>Stad Simulator</h2>
+        <input type="text" id="username" placeholder="Gebruikersnaam" style="width:100%; padding:10px; margin-bottom:10px; border:1px solid #ddd; border-radius:5px;">
+        <button class="btn" onclick="startGame()">Start Spel</button>
     </div>
-    
-    <div id="status">Verbinden met server...</div>
 </div>
 
-<div id="viewport">
-    <div id="map">
-        <!-- Het huis in het midden van de map -->
-        <div class="house">
-            <div class="door"></div>
-            <p style="text-align: center; color: #bdc3c7; font-weight: bold; font-size: 30px; margin-top: 200px; opacity: 0.5;">Jouw Huis</p>
-        </div>
+<div id="hud" style="display:none;">
+    <div style="font-size: 24px; font-weight: 900; margin-bottom: 10px;">💰 €<span id="money">200</span></div>
+    <button class="btn" onclick="work()">💼 Werken (+€50)</button>
+    <p style="font-size: 12px; font-weight: bold; margin: 15px 0 5px;">Bouw Stad:</p>
+    <div class="shop-grid">
+        <button class="shop-item" onclick="build('🏠', 100)">Huis (€100)</button>
+        <button class="shop-item" onclick="build('🏢', 500)">Flat (€500)</button>
+        <button class="shop-item" onclick="build('🌳', 20)">Boom (€20)</button>
+        <button class="shop-item" onclick="build('🛒', 300)">Winkel (€300)</button>
+        <button class="shop-item" onclick="build('🏥', 1000)">Ziekenhuis (€1k)</button>
+        <button class="shop-item" onclick="build('🚔', 400)">Politie (€400)</button>
     </div>
+    <div id="status" style="font-size: 10px; margin-top: 10px; color: green;">Verbonden als: <span id="display-name"></span></div>
 </div>
+
+<div id="map"></div>
 
 <script>
-    // --- GAME STATE ---
-    let money = 100;
-    let pX = 2500, pY = 2500; // Start precies in het huis
-    let vX = 0, vY = 0;
-    let myId = "Speler_" + Math.floor(Math.random() * 99999);
+    const URL = 'https://dvnbmzepheskjvhcydta.supabase.co';
+    const KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImR2bmJtemVwaGVza2p2aGN5ZHRhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzgzMjc1NjcsImV4cCI6MjA5MzkwMzU2N30.OW_8kqcRnDd_i2v1EcSn3IwoWKAsspyLQ3MUOIUD2mY';
+    const supabase = supabase.createClient(URL, KEY);
+
+    let user = "";
+    let money = 200;
+    let pX = 2500, pY = 2500, vX = 0, vY = 0;
     const keys = {};
-    
-    const map = document.getElementById('map');
-    const statusDiv = document.getElementById('status');
 
-    // Input vastleggen
-    window.addEventListener('keydown', e => keys[e.code] = true);
-    window.addEventListener('keyup', e => keys[e.code] = false);
-
-    // --- MULTIPLAYER (FAIL-SAFE) ---
-    let isConnected = false;
-    let channel = null;
-
-    try {
-        const URL = 'https://dvnbmzepheskjvhcydta.supabase.co';
-        const KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImR2bmJtemVwaGVza2p2aGN5ZHRhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzgzMjc1NjcsImV4cCI6MjA5MzkwMzU2N30.OW_8kqcRnDd_i2v1EcSn3IwoWKAsspyLQ3MUOIUD2mY';
+    async function startGame() {
+        user = document.getElementById('username').value;
+        if (user.length < 2) return alert("Kies een naam");
         
-        // Check of Supabase is geladen
-        if (window.supabase) {
-            const supabaseClient = supabase.createClient(URL, KEY);
-            channel = supabaseClient.channel('world_room');
+        document.getElementById('login-overlay').style.display = 'none';
+        document.getElementById('hud').style.display = 'block';
+        document.getElementById('display-name').innerText = user;
 
-            // Posities van anderen ontvangen
-            channel.on('broadcast', { event: 'move' }, (payload) => {
-                const data = payload.payload;
-                let other = document.getElementById(data.id);
-                if (!other) {
-                    other = document.createElement('div');
-                    other.id = data.id; other.className = 'player'; other.innerText = "VRIEND";
-                    map.appendChild(other);
-                }
-                other.style.transform = `translate(${data.x}px, ${data.y}px)`;
-            });
+        // Laad bestaande stad uit database
+        const { data } = await supabase.from('city_objects').select('*');
+        data.forEach(obj => renderBuilding(obj));
 
-            // Spullen van anderen ontvangen
-            channel.on('broadcast', { event: 'build' }, (payload) => {
-                placeFurniture(payload.payload.emoji, payload.payload.x, payload.payload.y, false);
-            });
-
-            // Verbindingsstatus
-            channel.subscribe((status) => {
-                if (status === 'SUBSCRIBED') {
-                    isConnected = true;
-                    statusDiv.innerText = "🟢 ONLINE (Multiplayer)";
-                    statusDiv.className = "online";
-                } else {
-                    isConnected = false;
-                    statusDiv.innerText = "🔴 OFFLINE (Je bent alleen)";
-                    statusDiv.className = "offline";
-                }
-            });
-        }
-    } catch (error) {
-        console.error("Multiplayer overgeslagen:", error);
-        statusDiv.innerText = "🔴 OFFLINE (Fout bij laden)";
-        statusDiv.className = "offline";
+        initMultiplayer();
+        requestAnimationFrame(loop);
     }
 
-    // --- DE GAME LOOP (WERKT ALTIJD, ZELFS OFFLINE) ---
-    function gameLoop() {
-        const speed = 1.5; // Iets sneller lopen
+    function initMultiplayer() {
+        const channel = supabase.channel('city_hall')
+        .on('broadcast', { event: 'move' }, (p) => {
+            let el = document.getElementById(p.payload.id);
+            if (!el) {
+                el = document.createElement('div');
+                el.id = p.payload.id; el.className = 'player';
+                document.getElementById('map').appendChild(el);
+            }
+            el.innerText = p.payload.user;
+            el.style.left = p.payload.x + 'px'; el.style.top = p.payload.y + 'px';
+        })
+        .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'city_objects' }, (p) => {
+            renderBuilding(p.new);
+        })
+        .subscribe();
 
-        if (keys['KeyW'] || keys['ArrowUp']) vY -= speed;
-        if (keys['KeyS'] || keys['ArrowDown']) vY += speed;
-        if (keys['KeyA'] || keys['ArrowLeft']) vX -= speed;
-        if (keys['KeyD'] || keys['ArrowRight']) vX += speed;
+        window.multiplayer = channel;
+    }
 
-        vX *= 0.85; vY *= 0.85; // Frictie
+    function loop() {
+        if (keys['KeyW'] || keys['ArrowUp']) vY -= 1;
+        if (keys['KeyS'] || keys['ArrowDown']) vY += 1;
+        if (keys['KeyA'] || keys['ArrowLeft']) vX -= 1;
+        if (keys['KeyD'] || keys['ArrowRight']) vX += 1;
+
+        vX *= 0.85; vY *= 0.85;
         pX += vX; pY += vY;
 
-        // Blijf binnen de randen van de gigantische map
-        pX = Math.max(25, Math.min(4975, pX));
-        pY = Math.max(25, Math.min(4975, pY));
+        const me = getLocalPlayer();
+        me.style.left = pX + 'px'; me.style.top = pY + 'px';
+        
+        // Camera
+        document.getElementById('map').style.transform = `translate(${window.innerWidth/2 - pX}px, ${window.innerHeight/2 - pY}px)`;
 
-        // Teken of update JOUW speler
-        let me = document.getElementById(myId);
+        if (window.multiplayer) {
+            window.multiplayer.send({ type: 'broadcast', event: 'move', payload: { id: user, user, x: pX, y: pY }});
+        }
+        requestAnimationFrame(loop);
+    }
+
+    async function build(type, cost) {
+        if (money < cost) return alert("Niet genoeg geld!");
+        money -= cost;
+        document.getElementById('money').innerText = money;
+
+        // Sla op in database zodat iedereen het ziet, ook na refresh!
+        await supabase.from('city_objects').insert([{ type, x: pX, y: pY, owner: user }]);
+    }
+
+    function renderBuilding(obj) {
+        if (document.getElementById(obj.id)) return;
+        const b = document.createElement('div');
+        b.id = obj.id; b.className = 'building';
+        b.innerText = obj.type;
+        b.style.left = obj.x + 'px'; b.style.top = obj.y + 'px';
+        document.getElementById('map').appendChild(b);
+    }
+
+    function getLocalPlayer() {
+        let me = document.getElementById('local');
         if (!me) {
             me = document.createElement('div');
-            me.id = myId; me.className = 'player local-player'; me.innerText = "JIJ";
-            map.appendChild(me);
+            me.id = 'local'; me.className = 'player local';
+            document.getElementById('map').appendChild(me);
         }
-        me.style.transform = `translate(${pX}px, ${pY}px)`;
-
-        // Camera volgt jou superstrak
-        const camX = (window.innerWidth / 2) - pX;
-        const camY = (window.innerHeight / 2) - pY;
-        map.style.transform = `translate(${camX}px, ${camY}px)`;
-
-        // Stuur je locatie stilletjes door (ALLEEN als je verbonden bent en beweegt)
-        if (isConnected && channel && (Math.abs(vX) > 0.1 || Math.abs(vY) > 0.1)) {
-            channel.send({ type: 'broadcast', event: 'move', payload: { id: myId, x: pX, y: pY } })
-                   .catch(() => {}); // Vang foutjes af zonder het spel te laten crashen
-        }
-
-        requestAnimationFrame(gameLoop);
+        return me;
     }
 
-    // --- ACTIES ---
-    function work() {
-        money += 20;
-        document.getElementById('money').innerText = money;
-        
-        // Groene flits als je werkt
-        const me = document.getElementById(myId);
-        if (me) {
-            me.style.boxShadow = "0 0 30px #2ecc71";
-            setTimeout(() => me.style.boxShadow = "0 10px 20px rgba(0,0,0,0.3)", 200);
-        }
-    }
-
-    function buyItem(emoji, price) {
-        if (money >= price) {
-            money -= price;
-            document.getElementById('money').innerText = money;
-            placeFurniture(emoji, pX, pY, true);
-        } else {
-            alert("Oeps! Niet genoeg geld. Ga even werken.");
-        }
-    }
-
-    function placeFurniture(emoji, x, y, isMe) {
-        let item = document.createElement('div');
-        item.className = 'furniture';
-        item.innerText = emoji;
-        item.style.transform = `translate(${x}px, ${y}px)`;
-        map.appendChild(item);
-
-        // Vertel anderen dat je iets hebt gekocht (alleen als jij de koper bent)
-        if (isMe && isConnected && channel) {
-            channel.send({ type: 'broadcast', event: 'build', payload: { emoji: emoji, x: x, y: y } })
-                   .catch(() => {});
-        }
-    }
-
-    // Start de engine!
-    gameLoop();
+    function work() { money += 50; document.getElementById('money').innerText = money; }
+    window.onkeydown = (e) => keys[e.code] = true;
+    window.onkeyup = (e) => keys[e.code] = false;
 </script>
 </body>
 </html>
