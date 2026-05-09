@@ -2,7 +2,7 @@
 <html lang="nl">
 <head>
     <meta charset="UTF-8">
-    <title>Life Sim - Giga Map & Huizen</title>
+    <title>Life Sim - Fail Safe Editie</title>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
         :root { --p: #3498db; --s: #2ecc71; --g: #78e08f; --house: #f5f6fa; --wall: #dcdde1; }
@@ -10,189 +10,224 @@
         
         #viewport { width: 100vw; height: 100vh; position: relative; overflow: hidden; }
         
-        /* De Giga Map (5000x5000) */
+        /* Giga Map met duidelijk raster */
         #map { 
             width: 5000px; height: 5000px; background-color: var(--g);
-            background-image: radial-gradient(rgba(255,255,255,0.2) 2px, transparent 2px);
-            background-size: 50px 50px; position: absolute; top: 0; left: 0;
-            transition: transform 0.05s linear;
+            background-image: 
+                linear-gradient(rgba(255,255,255,0.2) 2px, transparent 2px),
+                linear-gradient(90deg, rgba(255,255,255,0.2) 2px, transparent 2px);
+            background-size: 100px 100px; position: absolute; top: 0; left: 0;
+            will-change: transform;
         }
 
-        /* Het Huis */
+        /* Huis */
         .house {
-            position: absolute; width: 600px; height: 400px; 
-            background: var(--house); border: 15px solid var(--wall);
-            left: 2200px; top: 2300px; border-radius: 10px;
-            box-shadow: inset 0 0 20px rgba(0,0,0,0.05), 0 20px 40px rgba(0,0,0,0.2);
+            position: absolute; width: 800px; height: 500px; 
+            background: var(--house); border: 20px solid var(--wall);
+            left: 2100px; top: 2200px; border-radius: 10px;
+            box-shadow: inset 0 0 30px rgba(0,0,0,0.05), 0 30px 60px rgba(0,0,0,0.3);
         }
-        .door {
-            position: absolute; width: 100px; height: 15px; background: #e1b12c;
-            bottom: -15px; left: 250px;
-        }
+        .door { position: absolute; width: 150px; height: 20px; background: #e1b12c; bottom: -20px; left: 325px; }
 
         /* Spelers */
         .player { 
-            width: 40px; height: 40px; position: absolute; border-radius: 50%; background: #e74c3c;
-            display: flex; align-items: center; justify-content: center; color: white; font-weight: bold; font-size: 10px;
-            box-shadow: 0 8px 15px rgba(0,0,0,0.3); z-index: 50; transition: transform 0.1s linear;
+            width: 50px; height: 50px; position: absolute; border-radius: 50%; background: #e74c3c;
+            display: flex; align-items: center; justify-content: center; color: white; font-weight: bold; font-size: 11px;
+            box-shadow: 0 10px 20px rgba(0,0,0,0.3); z-index: 50; 
+            margin-top: -25px; margin-left: -25px; /* Centreer perfect op coördinaten */
         }
-        .local-player { background: var(--p); border: 3px solid white; z-index: 60; }
+        .local-player { background: var(--p); border: 4px solid white; z-index: 60; }
 
         /* Meubels */
         .furniture {
-            position: absolute; font-size: 30px; z-index: 20;
-            display: flex; align-items: center; justify-content: center;
-            filter: drop-shadow(0 5px 5px rgba(0,0,0,0.3));
+            position: absolute; font-size: 40px; z-index: 20;
+            margin-top: -40px; margin-left: -20px; /* Centreer emoji op de grond */
+            filter: drop-shadow(0 10px 5px rgba(0,0,0,0.3));
         }
 
-        /* Interface */
+        /* UI */
         #ui { 
             position: fixed; top: 20px; left: 20px; z-index: 100; background: rgba(255,255,255,0.95); 
-            padding: 20px; border-radius: 16px; box-shadow: 0 10px 30px rgba(0,0,0,0.2); width: 200px;
+            padding: 20px; border-radius: 16px; box-shadow: 0 10px 30px rgba(0,0,0,0.2); width: 220px;
         }
-        .btn { background: var(--s); color: white; border: none; padding: 12px; border-radius: 8px; width: 100%; cursor: pointer; font-weight: bold; margin-top: 10px; transition: 0.2s;}
-        .btn:hover { filter: brightness(1.1); transform: scale(1.02); }
+        .btn { background: var(--s); color: white; border: none; padding: 15px; border-radius: 8px; width: 100%; cursor: pointer; font-weight: bold; margin-top: 10px; transition: 0.2s;}
+        .btn:hover { filter: brightness(1.1); transform: translateY(-2px); }
+        .btn:active { transform: translateY(0); }
         .btn-shop { background: #9b59b6; }
-        #status { font-size: 12px; margin-top: 10px; color: #e74c3c; font-weight: bold; text-align: center; }
+        
+        #status { font-size: 12px; margin-top: 15px; color: #f39c12; font-weight: bold; text-align: center; padding: 5px; border-radius: 5px; background: #fdf2e9;}
+        .online { color: #27ae60 !important; background: #e9f7ef !important; }
+        .offline { color: #e74c3c !important; background: #fdedec !important; }
     </style>
 </head>
 <body>
 
 <div id="ui">
-    <div style="font-size: 28px; font-weight: 900; color: #2f3640;">💰 €<span id="money">100</span></div>
+    <div style="font-size: 32px; font-weight: 900; color: #2c3e50;">💰 €<span id="money">100</span></div>
     <button class="btn" onclick="work()">💼 WERKEN (+€20)</button>
-    <hr style="border: 0; border-top: 2px solid #f1f2f6; margin: 15px 0;">
-    <p style="margin:0 0 5px 0; font-size: 12px; font-weight: bold;">Decoratie (Klik om te plaatsen):</p>
-    <button class="btn btn-shop" onclick="buyFurniture('🪑', 50)">Koop Stoel (€50)</button>
-    <button class="btn btn-shop" onclick="buyFurniture('🪴', 30)">Koop Plant (€30)</button>
+    
+    <div style="margin-top: 20px; padding-top: 15px; border-top: 2px solid #ecf0f1;">
+        <p style="margin:0 0 10px 0; font-size: 13px; font-weight: bold; color: #7f8c8d;">Winkel (Plaats in wereld):</p>
+        <button class="btn btn-shop" onclick="buyItem('🪑', 50)">Koop Stoel (€50)</button>
+        <button class="btn btn-shop" onclick="buyItem('🪴', 30)">Koop Plant (€30)</button>
+        <button class="btn btn-shop" onclick="buyItem('📺', 150)">Koop TV (€150)</button>
+    </div>
+    
     <div id="status">Verbinden met server...</div>
 </div>
 
 <div id="viewport">
     <div id="map">
-        <!-- Het huis -->
+        <!-- Het huis in het midden van de map -->
         <div class="house">
             <div class="door"></div>
-            <p style="text-align: center; color: #bdc3c7; font-weight: bold; font-size: 24px; margin-top: 150px;">Jouw Huis</p>
+            <p style="text-align: center; color: #bdc3c7; font-weight: bold; font-size: 30px; margin-top: 200px; opacity: 0.5;">Jouw Huis</p>
         </div>
     </div>
 </div>
 
 <script>
-    // SUPABASE CONFIGURATIE
-    const URL = 'https://dvnbmzepheskjvhcydta.supabase.co';
-    const KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImR2bmJtemVwaGVza2p2aGN5ZHRhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzgzMjc1NjcsImV4cCI6MjA5MzkwMzU2N30.OW_8kqcRnDd_i2v1EcSn3IwoWKAsspyLQ3MUOIUD2mY';
-    
-    const supabase = supabase.createClient(URL, KEY);
-    const channel = supabase.channel('giga_world', { config: { broadcast: { self: false, ack: true } } });
-
-    const map = document.getElementById('map');
-    let myId = "P_" + Math.floor(Math.random() * 9999);
-    let money = 100; // Je start met 100 euro!
-    
-    // Start in het huis!
-    let x = 2500, y = 2500, vx = 0, vy = 0;
+    // --- GAME STATE ---
+    let money = 100;
+    let pX = 2500, pY = 2500; // Start precies in het huis
+    let vX = 0, vY = 0;
+    let myId = "Speler_" + Math.floor(Math.random() * 99999);
     const keys = {};
+    
+    const map = document.getElementById('map');
+    const statusDiv = document.getElementById('status');
 
-    // --- MULTIPLAYER LOGICA ---
-    channel.on('broadcast', { event: 'move' }, (payload) => {
-        const d = payload.payload;
-        let p = document.getElementById(d.id);
-        if (!p) {
-            p = document.createElement('div');
-            p.id = d.id; p.className = 'player'; p.innerText = "VRIEND";
-            map.appendChild(p);
+    // Input vastleggen
+    window.addEventListener('keydown', e => keys[e.code] = true);
+    window.addEventListener('keyup', e => keys[e.code] = false);
+
+    // --- MULTIPLAYER (FAIL-SAFE) ---
+    let isConnected = false;
+    let channel = null;
+
+    try {
+        const URL = 'https://dvnbmzepheskjvhcydta.supabase.co';
+        const KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImR2bmJtemVwaGVza2p2aGN5ZHRhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzgzMjc1NjcsImV4cCI6MjA5MzkwMzU2N30.OW_8kqcRnDd_i2v1EcSn3IwoWKAsspyLQ3MUOIUD2mY';
+        
+        // Check of Supabase is geladen
+        if (window.supabase) {
+            const supabaseClient = supabase.createClient(URL, KEY);
+            channel = supabaseClient.channel('world_room');
+
+            // Posities van anderen ontvangen
+            channel.on('broadcast', { event: 'move' }, (payload) => {
+                const data = payload.payload;
+                let other = document.getElementById(data.id);
+                if (!other) {
+                    other = document.createElement('div');
+                    other.id = data.id; other.className = 'player'; other.innerText = "VRIEND";
+                    map.appendChild(other);
+                }
+                other.style.transform = `translate(${data.x}px, ${data.y}px)`;
+            });
+
+            // Spullen van anderen ontvangen
+            channel.on('broadcast', { event: 'build' }, (payload) => {
+                placeFurniture(payload.payload.emoji, payload.payload.x, payload.payload.y, false);
+            });
+
+            // Verbindingsstatus
+            channel.subscribe((status) => {
+                if (status === 'SUBSCRIBED') {
+                    isConnected = true;
+                    statusDiv.innerText = "🟢 ONLINE (Multiplayer)";
+                    statusDiv.className = "online";
+                } else {
+                    isConnected = false;
+                    statusDiv.innerText = "🔴 OFFLINE (Je bent alleen)";
+                    statusDiv.className = "offline";
+                }
+            });
         }
-        p.style.transform = `translate(${d.x}px, ${d.y}px)`;
-    });
+    } catch (error) {
+        console.error("Multiplayer overgeslagen:", error);
+        statusDiv.innerText = "🔴 OFFLINE (Fout bij laden)";
+        statusDiv.className = "offline";
+    }
 
-    channel.on('broadcast', { event: 'place_item' }, (payload) => {
-        const d = payload.payload;
-        placeFurnitureOnMap(d.emoji, d.x, d.y);
-    });
+    // --- DE GAME LOOP (WERKT ALTIJD, ZELFS OFFLINE) ---
+    function gameLoop() {
+        const speed = 1.5; // Iets sneller lopen
 
-    channel.subscribe((status) => {
-        const statusDiv = document.getElementById('status');
-        if (status === 'SUBSCRIBED') {
-            statusDiv.innerText = "🟢 SERVER ONLINE";
-            statusDiv.style.color = "#2ecc71";
-        } else {
-            statusDiv.innerText = "🔴 " + status;
-        }
-    });
+        if (keys['KeyW'] || keys['ArrowUp']) vY -= speed;
+        if (keys['KeyS'] || keys['ArrowDown']) vY += speed;
+        if (keys['KeyA'] || keys['ArrowLeft']) vX -= speed;
+        if (keys['KeyD'] || keys['ArrowRight']) vX += speed;
 
-    // --- DE GAME LOGICA ---
-    window.onkeydown = (e) => keys[e.code] = true;
-    window.onkeyup = (e) => keys[e.code] = false;
+        vX *= 0.85; vY *= 0.85; // Frictie
+        pX += vX; pY += vY;
 
-    function loop() {
-        const speed = 1.2;
-        if (keys['KeyW'] || keys['ArrowUp']) vy -= speed;
-        if (keys['KeyS'] || keys['ArrowDown']) vy += speed;
-        if (keys['KeyA'] || keys['ArrowLeft']) vx -= speed;
-        if (keys['KeyD'] || keys['ArrowRight']) vx += speed;
+        // Blijf binnen de randen van de gigantische map
+        pX = Math.max(25, Math.min(4975, pX));
+        pY = Math.max(25, Math.min(4975, pY));
 
-        vx *= 0.85; vy *= 0.85; // Frictie
-        x += vx; y += vy;
-
-        // Blijf binnen de 5000x5000 map
-        x = Math.max(0, Math.min(4950, x));
-        y = Math.max(0, Math.min(4950, y));
-
+        // Teken of update JOUW speler
         let me = document.getElementById(myId);
         if (!me) {
             me = document.createElement('div');
             me.id = myId; me.className = 'player local-player'; me.innerText = "JIJ";
             map.appendChild(me);
         }
+        me.style.transform = `translate(${pX}px, ${pY}px)`;
 
-        // Beweeg speler en camera
-        me.style.transform = `translate(${x}px, ${y}px)`;
-        map.style.transform = `translate(${window.innerWidth/2 - x - 20}px, ${window.innerHeight/2 - y - 20}px)`;
+        // Camera volgt jou superstrak
+        const camX = (window.innerWidth / 2) - pX;
+        const camY = (window.innerHeight / 2) - pY;
+        map.style.transform = `translate(${camX}px, ${camY}px)`;
 
-        // Stuur positie door als we bewegen
-        if (Math.abs(vx) > 0.1 || Math.abs(vy) > 0.1) {
-            channel.send({ type: 'broadcast', event: 'move', payload: { id: myId, x, y } });
+        // Stuur je locatie stilletjes door (ALLEEN als je verbonden bent en beweegt)
+        if (isConnected && channel && (Math.abs(vX) > 0.1 || Math.abs(vY) > 0.1)) {
+            channel.send({ type: 'broadcast', event: 'move', payload: { id: myId, x: pX, y: pY } })
+                   .catch(() => {}); // Vang foutjes af zonder het spel te laten crashen
         }
-        requestAnimationFrame(loop);
+
+        requestAnimationFrame(gameLoop);
     }
 
-    // --- WERK & WINKEL LOGICA ---
+    // --- ACTIES ---
     function work() {
         money += 20;
-        updateMoney();
-    }
-
-    function buyFurniture(emoji, price) {
-        if (money >= price) {
-            money -= price;
-            updateMoney();
-            
-            // Plaats het precies waar de speler staat
-            placeFurnitureOnMap(emoji, x, y);
-            
-            // Vertel de andere spelers dat je iets gebouwd hebt!
-            channel.send({ type: 'broadcast', event: 'place_item', payload: { emoji: emoji, x: x, y: y } });
-        } else {
-            alert("Je hebt niet genoeg geld! Ga eerst werken.");
+        document.getElementById('money').innerText = money;
+        
+        // Groene flits als je werkt
+        const me = document.getElementById(myId);
+        if (me) {
+            me.style.boxShadow = "0 0 30px #2ecc71";
+            setTimeout(() => me.style.boxShadow = "0 10px 20px rgba(0,0,0,0.3)", 200);
         }
     }
 
-    function placeFurnitureOnMap(emoji, pX, pY) {
+    function buyItem(emoji, price) {
+        if (money >= price) {
+            money -= price;
+            document.getElementById('money').innerText = money;
+            placeFurniture(emoji, pX, pY, true);
+        } else {
+            alert("Oeps! Niet genoeg geld. Ga even werken.");
+        }
+    }
+
+    function placeFurniture(emoji, x, y, isMe) {
         let item = document.createElement('div');
         item.className = 'furniture';
         item.innerText = emoji;
-        // Zet het item neer (kleine correctie zodat het mooi in het midden staat)
-        item.style.transform = `translate(${pX}px, ${pY - 10}px)`;
+        item.style.transform = `translate(${x}px, ${y}px)`;
         map.appendChild(item);
+
+        // Vertel anderen dat je iets hebt gekocht (alleen als jij de koper bent)
+        if (isMe && isConnected && channel) {
+            channel.send({ type: 'broadcast', event: 'build', payload: { emoji: emoji, x: x, y: y } })
+                   .catch(() => {});
+        }
     }
 
-    function updateMoney() {
-        document.getElementById('money').innerText = money;
-    }
-
-    // Start het spel
-    loop();
+    // Start de engine!
+    gameLoop();
 </script>
 </body>
 </html>
